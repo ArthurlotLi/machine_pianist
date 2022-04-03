@@ -1,7 +1,7 @@
 #
 # midi_player.py
 #
-# Simple utility for visualization and testing - play a midi file
+# Simple utility for representation and testing - play a midi file
 # sample.
 
 import pygame
