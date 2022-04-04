@@ -10,9 +10,29 @@ from mido import MidiFile
 
 _test_file = "./midi_test/MIDI-Unprocessed_043_PIANO043_MID--AUDIO-split_07-06-17_Piano-e_1-03_wav--1.midi"
 _downloaded_file = "./midi_test/Online Version.mid"
-_demo_duration = 30
 
-def compare_test_to_downloaded():
+_spider_dance = "./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid"
+
+def output_midi_lines(lines_to_output):
+  """ 
+  Output x files of our test file.
+  """
+  output_target = _spider_dance
+  mid_test = MidiFile(output_target)
+  print("\n[INFO] MIDI Test -First %s lines of %s:" % (lines_to_output, output_target))
+  print_first_x(mid_test, lines_to_output)
+
+def repeat_play_section(duration):
+  """
+  For testing, play the first x seconds of the test file. Indefinitely.
+  """
+  player = PianoPlayer()
+
+  while True:
+    print("[INFO] MIDI Test - Playing MAESTRO dataset MIDI file for %d seconds." % duration)
+    player.local_load_and_play(_test_file, play_for=duration, verbose = False)
+
+def compare_test_to_downloaded(demo_duration_natural, demo_duration_artificial, lines_to_output):
   """
   A proof of concept experiment - compare the midi file of a particular
   song (Prelude No. 14 in F# Minor - Johann Sebastian Bach) from the
@@ -30,21 +50,22 @@ def compare_test_to_downloaded():
   player = PianoPlayer()
 
   print("[INFO] MIDI Test - Playing MAESTRO dataset MIDI file. This should sound natural...")
-  player.local_load_and_play(_test_file, play_for=_demo_duration, verbose = False)
+  player.local_load_and_play(_test_file, play_for=demo_duration_natural, verbose = False)
   print("[INFO] MIDI Test - Playing online-sourced MIDI files. This should NOT sound natural...")
-  player.local_load_and_play(_downloaded_file, play_for=_demo_duration, verbose = False)
+  player.local_load_and_play(_downloaded_file, play_for=demo_duration_artificial, verbose = False)
 
   print("\n[INFO] MIDI Test - Comparison of first 10 lines of both MIDI files:")
   mid_test = MidiFile(_test_file)
   mid_download = MidiFile(_downloaded_file)
-
-  def print_first_x(mid, x):
-    for i, track in enumerate(mid.tracks):
-      print('Track {}: {}'.format(i, track.name))
-      for j in range(0, min(x, len(track))):
-        print(track[j])
   
   print("\n[INFO] MIDI Test - MAESTRO MIDI:")
-  print_first_x(mid_test, 20)
+  print_first_x(mid_test, lines_to_output)
   print("\n[INFO] MIDI Test - Online-sourced MIDI:")
-  print_first_x(mid_download, 20)
+  print_first_x(mid_download, lines_to_output)
+
+def print_first_x(mid, x):
+  """ Print the first x lines of a midi files.  """
+  for i, track in enumerate(mid.tracks):
+    print('Track {}: {}'.format(i, track.name))
+    for j in range(0, min(x, len(track))):
+      print(track[j])
