@@ -29,3 +29,12 @@ class PianoPlayer:
     except Exception as e:
       print("[ERROR] PianoPlayer was unable to locally play song from location '" + str(location) + "'. Exception: ")
       print(e)
+
+def print_first_x(mid, x):
+  """ 
+  Print the first x lines of a midi files.  
+  """
+  for i, track in enumerate(mid.tracks):
+    print('Track {}: {}'.format(i, track.name))
+    for j in range(0, min(x, len(track))):
+      print(track[j])

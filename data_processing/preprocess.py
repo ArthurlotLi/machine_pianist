@@ -31,8 +31,8 @@
 #        1) control 2) value 3) time. The solution vector will therefore
 #        be of size 3p + 1.
 
-from data_params import *
-from midi_utils import *
+from data_processing.data_params import *
+from data_processing.midi_utils import *
 
 from pathlib import Path
 from mido import MidiFile
@@ -54,9 +54,44 @@ def preprocess_maestro(clean_data: Path, output_path: Path):
   and then running preprocess_targeted_dataset.
 
   Expects the dataset to be labeled as "maestro-v3.0.0" and the csv
-  called "maestro-v3.0.0.csv".
+  called "maestro-v3.0.0.csv", configured in data_params.
   """
-  pass
+  # Make sure everything is here.
+  assert clean_data.exists()
+  dataset_location = clean_data.joinpath(maestro_dataset_folder)
+  assert dataset_location.exists()
+  csv_location = dataset_location.joinpath(maestro_dataset_csv)
+  assert csv_location.exists()
+  output_path.mkdir(exist_ok=True)
+
+  # Read the CSV and parse it. 
+  maestro_csv = pd.read_csv(str(csv_location))
+  train_set = []
+  test_set = []
+
+  # Not pandas-kosher, but it's a tiny csv and this makes it legible.
+  for index, row in maestro_csv.iterrows():
+    # For each line item, get the midi path and whether it should be
+    # a train or test. All other info is irrelevant. 
+    song_split = row["split"]
+    # Given the nature of this project, we will pass on the val set.
+    song_split = song_split.replace("validation", "train")
+    song_midi = dataset_location.joinpath(row["midi_filename"])
+
+    # Go ahead and preprocess each MIDI. 
+    X_df = preprocess_midi(song_midi)
+    Y_df = generate_solutions(song_midi, X_df)
+
+    if song_split == "train":
+      train_set.append((X_df, Y_df))
+    elif song_split == "test":
+      test_set.append((X_df, Y_df))
+    else:
+      assert False
+  
+  # We've preprocessed everthing. Save to file. 
+  # TODO: concat X and Y dataframes for test and train and save. 
+
 
 def preprocess_midi(midi_file: Path):
   """
@@ -66,6 +101,9 @@ def preprocess_midi(midi_file: Path):
 
   Returns the constructed dataframe. 
   """
+  midi = read_midi(midi_file)
+  midi = combine_tracks(midi)
+
   pass
 
 def generate_solutions(midi_file: Path, data: pd.DataFrame):

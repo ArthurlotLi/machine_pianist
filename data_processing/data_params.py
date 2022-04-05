@@ -23,3 +23,8 @@ music_notated_32nd_notes_per_beat = 8
 # things, but may make things easier. Experiment with this, and change
 # the capacity of the model in tandem. 
 p_granularity = 10
+
+# Maestro dataset info. 
+maestro_dataset_folder = "maestro_test" # TODO: Obvi, change me.
+#maestro_dataset_folder = "maestro-v3.0.0"
+maestro_dataset_csv = "maestro-v3.0.0.csv"

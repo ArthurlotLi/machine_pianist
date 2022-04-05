@@ -4,7 +4,7 @@
 # Misc utility meant to explicitly show the contents of the midi
 # files provided as part of the MAESTRO Dataset. 
 
-from utils.midi_player import PianoPlayer
+from utils.midi_player import PianoPlayer, print_first_x
 
 from mido import MidiFile
 
@@ -62,10 +62,3 @@ def compare_test_to_downloaded(demo_duration_natural, demo_duration_artificial, 
   print_first_x(mid_test, lines_to_output)
   print("\n[INFO] MIDI Test - Online-sourced MIDI:")
   print_first_x(mid_download, lines_to_output)
-
-def print_first_x(mid, x):
-  """ Print the first x lines of a midi files.  """
-  for i, track in enumerate(mid.tracks):
-    print('Track {}: {}'.format(i, track.name))
-    for j in range(0, min(x, len(track))):
-      print(track[j])
