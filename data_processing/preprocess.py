@@ -103,6 +103,7 @@ def preprocess_midi(midi_file: Path):
   """
   midi = read_midi(midi_file)
   midi = combine_tracks(midi)
+  midi = harmonize_meta(midi)
 
   pass
 
