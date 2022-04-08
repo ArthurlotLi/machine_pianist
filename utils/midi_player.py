@@ -4,8 +4,10 @@
 # Simple utility for representation and testing - play a midi file
 # sample.
 
-import pygame
+# Avoid the welcome message. 
 import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+import pygame 
 from mido import MidiFile
 
 class PianoPlayer:
