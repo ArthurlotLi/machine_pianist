@@ -8,7 +8,6 @@
 # Standardized MetaMessage information. All incoming tracks should
 # be converted to match this tempo. 
 music_set_tempo = 500000 # Microseconds per quarter note.
-music_clocks_per_click = 24
 
 # An incredibly important hyperparameter. p is the number of supported
 # control changes between notes @ t-1 and t. If there are more than this
@@ -25,3 +24,8 @@ p_granularity = 10
 maestro_dataset_folder = "maestro_test" # TODO: Obvi, change me.
 #maestro_dataset_folder = "maestro-v3.0.0"
 maestro_dataset_csv = "maestro-v3.0.0.csv"
+
+data_note_col = "note"
+data_time_col = "time"
+data_note_on_col = "note_on"
+data_velocity_col = "velocity"

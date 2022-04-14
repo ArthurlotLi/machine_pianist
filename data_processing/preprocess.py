@@ -79,8 +79,8 @@ def preprocess_maestro(clean_data: Path, output_path: Path):
     song_midi = dataset_location.joinpath(row["midi_filename"])
 
     # Go ahead and preprocess each MIDI. 
-    X_df = preprocess_midi(song_midi)
-    Y_df = generate_solutions(song_midi, X_df)
+    midi, X_df = preprocess_midi(song_midi)
+    Y_df = generate_solutions(midi, X_df)
 
     if song_split == "train":
       train_set.append((X_df, Y_df))
@@ -99,15 +99,15 @@ def preprocess_midi(midi_file: Path):
   either train/test or inference. Combine tracks, harmonize meta info,
   and construct a dataframe that the model can use. 
 
-  Returns the constructed dataframe. 
+  Returns the preprocessed midi + constructed dataframe.
   """
   midi = read_midi(midi_file)
   midi = combine_tracks(midi)
   midi = harmonize_meta(midi)
 
-  pass
+  return midi, generate_dataframe(midi)
 
-def generate_solutions(midi_file: Path, data: pd.DataFrame):
+def generate_solutions(midi: MidiFile, data: pd.DataFrame):
   """
   Given the path to a MIDI file, extract solutions for test/train, as
   it is expected that this file will contain performance data of actual
@@ -116,4 +116,4 @@ def generate_solutions(midi_file: Path, data: pd.DataFrame):
 
   Returns the final dataframe with solutions for each timestep. 
   """
-  pass
+  generate_sol_dataframe(midi, data)
