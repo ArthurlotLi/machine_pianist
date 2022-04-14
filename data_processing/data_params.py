@@ -21,11 +21,15 @@ music_set_tempo = 500000 # Microseconds per quarter note.
 p_granularity = 10
 
 # Maestro dataset info. 
-maestro_dataset_folder = "maestro_test" # TODO: Obvi, change me.
-#maestro_dataset_folder = "maestro-v3.0.0"
+#maestro_dataset_folder = "maestro_test" # TODO: Obvi, change me.
+maestro_dataset_folder = "maestro-v3.0.0"
 maestro_dataset_csv = "maestro-v3.0.0.csv"
+
+data_train_csv = "train.csv"
+data_test_csv = "test.csv"
 
 data_note_col = "note"
 data_time_col = "time"
 data_note_on_col = "note_on"
+data_uid_col = "song"
 data_velocity_col = "velocity"

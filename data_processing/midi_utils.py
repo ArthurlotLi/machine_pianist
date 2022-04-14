@@ -19,7 +19,7 @@ _temp_file2 = "temp_file2"
 def read_midi(midi_file: Path):
   return MidiFile(midi_file)
 
-def combine_tracks(midi: MidiFile):
+def combine_tracks(midi: MidiFile, song_uid: int):
   """
   Given an input midi, if it has more than one track, automatically
   merges the tracks together into one. This is made with the 
@@ -33,12 +33,14 @@ def combine_tracks(midi: MidiFile):
   if len(midi.tracks) > 1:
     #print("[DEBUG] Midi Utils - Combining %d tracks." % len(midi.tracks))
     #print_first_x(midi, 10)
+    temp_file = _temp_file + str(song_uid)
+    temp_file2 = _temp_file2 + str(song_uid)
 
-    midi.save(_temp_file)
-    mergemid(_temp_file, _temp_file2)
-    merged_midi = read_midi(_temp_file2)
-    os.remove(_temp_file)
-    os.remove(_temp_file2)
+    midi.save(temp_file)
+    mergemid(temp_file, temp_file2)
+    merged_midi = read_midi(temp_file2)
+    os.remove(temp_file)
+    os.remove(temp_file2)
 
     #print("[DEBUG] Midi Utils - All done. Result:")
     #print_first_x(merged_midi, 10)
@@ -243,4 +245,4 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame):
   # Combine the solutions Y with the X dataframe.
   combined_data = pd.concat(objs=[data, solution_df], axis=1)
 
-  return combined_Data
+  return combined_data

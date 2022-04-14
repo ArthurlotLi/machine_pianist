@@ -34,9 +34,15 @@
 from data_processing.data_params import *
 from data_processing.midi_utils import *
 
+from multiprocessing import Pool
 from pathlib import Path
 from mido import MidiFile
 import pandas as pd
+import numpy as np
+from tqdm import tqdm
+
+# For multiprocessing.
+_num_processes = 10
 
 def preprocess_targeted_dataset(clean_data: Path, output_path: Path):
   """
@@ -64,11 +70,22 @@ def preprocess_maestro(clean_data: Path, output_path: Path):
   assert csv_location.exists()
   output_path.mkdir(exist_ok=True)
 
+  train_output_path = output_path.joinpath(data_train_csv)
+  test_output_path = output_path.joinpath(data_test_csv)
+
+  if test_output_path.exists() or train_output_path.exists():
+    print("[WARNING] Preprocess - Found existing dataset at %s.\n\nPress [ENTER] to overwrite." % output_path)
+    input()
+
   # Read the CSV and parse it. 
   maestro_csv = pd.read_csv(str(csv_location))
   train_set = []
   test_set = []
 
+  jobs = []
+  # Arbitrary ID to teach the model which subsequences are which
+  # (Ideally to let the forget gates fire.)
+  song_uid = 0
   # Not pandas-kosher, but it's a tiny csv and this makes it legible.
   for index, row in maestro_csv.iterrows():
     # For each line item, get the midi path and whether it should be
@@ -78,34 +95,65 @@ def preprocess_maestro(clean_data: Path, output_path: Path):
     song_split = song_split.replace("validation", "train")
     song_midi = dataset_location.joinpath(row["midi_filename"])
 
-    # Go ahead and preprocess each MIDI. 
-    midi, X_df = preprocess_midi(song_midi)
-    Y_df = generate_solutions(midi, X_df)
+    jobs.append((song_uid, song_split, song_midi))
+    song_uid += 1
 
+  job = Pool(_num_processes).imap(process_maestro_row, jobs)
+  job_results = tqdm(job, desc="[INFO] Preprocess - Maestro Dataset", unit="songs", total=maestro_csv.shape[0])
+
+  for X_Y_df, song_split in job_results:
     if song_split == "train":
-      train_set.append((X_df, Y_df))
+      train_set.append(X_Y_df)
     elif song_split == "test":
-      test_set.append((X_df, Y_df))
+      test_set.append(X_Y_df)
     else:
       assert False
   
+  assert len(train_set) > 0 and len(test_set) > 0
+
+  # Combine all of the dataframes together into two big matrices.
+  print("[INFO] Preprocess - Combining all dataframes.")
+  train_df = train_set[0]
+  for df in tqdm(train_set, desc="[INFO] Preprocess - Concatenating train", unit="matrices"):
+    train_df = pd.concat(objs=[train_df, df], axis=0)
+  test_df = test_set[0]
+  for df in tqdm(test_set, desc="[INFO] Preprocess - Concatenating test", unit="matrices"):
+    test_df = pd.concat(objs=[test_df, df], axis=0)
+
   # We've preprocessed everthing. Save to file. 
-  # TODO: concat X and Y dataframes for test and train and save. 
+  print("[INFO] Preprocess - Saving Train and Test matrices of sizes %s and %s respectively." % (str(train_df.shape), str(test_df.shape)))
+  train_df.to_csv(str(train_output_path))
+  test_df.to_csv(str(test_output_path))
 
+  print("[INFO] Preprocess - All done! Happy training. ")
 
-def preprocess_midi(midi_file: Path):
+def process_maestro_row(args):
+  song_uid, song_split, song_midi = args[0], args[1], args[2]
+  # Go ahead and preprocess each MIDI. 
+  midi, X_df = preprocess_midi(song_midi, song_uid)
+  X_Y_df = generate_solutions(midi, X_df)
+  return X_Y_df, song_split
+
+def preprocess_midi(midi_file: Path, song_uid: int):
   """
   Given the path to a MIDI file, execute general preprocessing for
   either train/test or inference. Combine tracks, harmonize meta info,
-  and construct a dataframe that the model can use. 
+  and construct a dataframe that the model can use. Requires an 
+  arbitrary but unique identifier (can set to anything if just
+  a singleton inference.)
 
   Returns the preprocessed midi + constructed dataframe.
   """
   midi = read_midi(midi_file)
-  midi = combine_tracks(midi)
+  midi = combine_tracks(midi, song_uid)
   midi = harmonize_meta(midi)
+  df = generate_dataframe(midi)
 
-  return midi, generate_dataframe(midi)
+  # Add the UID as a column. 
+  uid_col = np.full(shape= df.shape[0], fill_value=song_uid)
+  df[data_uid_col] = uid_col
+
+  return midi, df
 
 def generate_solutions(midi: MidiFile, data: pd.DataFrame):
   """
@@ -116,4 +164,4 @@ def generate_solutions(midi: MidiFile, data: pd.DataFrame):
 
   Returns the final dataframe with solutions for each timestep. 
   """
-  generate_sol_dataframe(midi, data)
+  return generate_sol_dataframe(midi, data)
