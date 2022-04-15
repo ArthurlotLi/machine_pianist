@@ -1,17 +1,21 @@
 #
-# create_train_test.py
+# model_preprocess.py
 #
 # Given the contents of the provided datasets folder, generate a
 # dataset with a train/test split for use with our model. 
+#
+# Usage:
+# python model_preprocess.py
 
 from data_processing.preprocess import *
 
 import argparse
+from pathlib import Path
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
-  parser.add_argument("--clean_data", type=Path, default="./datasets", help=
+  parser.add_argument("--clean_data", type=Path, default="./datasets/complete", help=
     "The location of your datasets that you wish to use for training and or "
     "testing.")
   parser.add_argument("--dataset_types", type=str, default="maestro", help=
