@@ -3,6 +3,8 @@ temp_file2
 
 datasets/complete
 
+saved_models
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

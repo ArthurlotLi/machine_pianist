@@ -9,7 +9,9 @@
 # and conduct inference on. 
 
 from model.load_save import load_existing_model_path
+from model.dataset_utils import generate_song_tensors
 from data_processing.preprocess import preprocess_midi
+from data_processing.postprocess import generate_output_midi
 from data_processing.data_params import *
 
 from pathlib import Path
@@ -28,13 +30,14 @@ class MachinePianist:
       print("[ERROR] Machine Pianist - Failed to load model at %s." % model_path)
       assert False
 
-    
-  def perform_midi(self, midi_files: list):
+  def perform_midis(self, midi_files: list):
     """
     Provided a list of files to load, preprocess each song and combine
     into a dataframe that can be fed to the model. After the model has
     inferred output data, combine that output data with the midi, 
     generating a new output midi with "performance" information. 
+
+    Returns a list of machine performance midis. 
     """
     print("[INFO] Machine Pianist - Preprocessing %d songs." % len(midi_files))
     # First preprocess all songs to get the new midis + dataframes. 
@@ -48,24 +51,19 @@ class MachinePianist:
     
     assert len(preprocessed_songs) > 0 and len(preprocessed_dfs) > 0
 
-    # Combine all dataframes so the model can conduct inference in one
-    # go. 
-    print("[INFO] Machine Pianist - Combining all dataframes.")
-    X = None
-    for df in tqdm(preprocessed_dfs, desc="[INFO] Preprocess - Concatenating train", unit="matrices"):
-      if X is None: X = df
-      else:
-        X = pd.concat(objs=[X, df], axis=0)
-    
+    # Now let's make sure to pad every single song here. 
+    X = generate_song_tensors(songs_list=preprocessed_dfs, solutions=False)
+
     # We now have a complete X dataframe. Conduct inference. 
     print("[INFO] Machine Pianist - Performing songs...")
     start_time = time.time()
     Y_hat = self._model.predict(X)
     print("[INFO] Machine Pianist - Songs performed! Playtime: %.2f seconds." % (time.time() - start_time))
 
-    print(Y_hat)
-    print(Y_hat.shape)
+    # Get the postprocessed songs and return them.
+    return generate_output_midi(preprocessed_songs, Y_hat)
 
+# For debug usage.
 if __name__ == "__main__":
   midi_files = [
     "./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid",
@@ -74,5 +72,17 @@ if __name__ == "__main__":
 
   model_path = Path("./saved_models/model0/machine_pianist.h5")
 
+  from utils.midi_player import *
+
+  for midi_path in midi_files:
+    midi, song_X = preprocess_midi(midi_file = midi_path, song_uid=0)
+    graph_velocities(midi)
+
   pianist = MachinePianist(model_path)
-  pianist.perform_midi(midi_files)
+  midis = pianist.perform_midis(midi_files)
+
+  player = PianoPlayer()
+  for midi in midis:
+    graph_velocities(midi)
+    #print_first_x(midi, 500, notes_only=True)
+    #player.play_mido(midi, play_for=60, block=True, verbose=True)

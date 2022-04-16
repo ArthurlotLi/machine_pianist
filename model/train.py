@@ -54,7 +54,7 @@ def _extract_X_Y(train_df):
 
   # Convert these dataframes into matrices, separated by song. Then
   # combine the matrices to create tensors. 
-  X, Y = generate_song_tensors(train_df, solutions=True)
+  X, Y = generate_song_tensors(songs_df = train_df, solutions=True)
 
   return X, Y
 

@@ -8,7 +8,6 @@ from data_processing.data_params import *
 from utils.midi_player import *
 from utils.mergemid import *
 
-import time
 from pathlib import Path
 from mido import MidiFile, tick2second, second2tick
 import pandas as pd

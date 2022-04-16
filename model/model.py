@@ -68,34 +68,6 @@ def get_callbacks(saved_models:Path, model_id: str):
   return callbacks
 
 def _model():
-  """
-  Returns the model generated according to hparams.
-  """
-  """
-  model = Sequential()
-
-  # First layer is an embedding. Embed the first _ notes before and
-  # generate the new prediction from those. 
-  model.add(Embedding(embedding_width,
-                      embedding_output, 
-                      input_length=embedding_input_len))
-  model.add(BatchNormalization())
-  model.add(Dropout(input_dropout))
-
-  # Hiden GRU layers.
-  for _ in range(0, gru_depth):
-    model.add(GRU(gru_width, 
-                  return_sequences=True))
-    model.add(BatchNormalization())
-    model.add(Dropout(hidden_dropout))
-  
-  # Output Layer
-  model.add(Activation('relu'))
-  model.add(TimeDistributed(Dense(1, activation="linear")))
-
-  return model
-  """
-
   X_input = Input(shape=input_dim)
   X = None
 
@@ -110,9 +82,9 @@ def _model():
     X = BatchNormalization()(X)
     X = Dropout(hidden_dropout)(X)
   
-  # Output layer - add a ReLU nonlinearity beforehand.
-  X = Activation('relu')(X) 
-  X = Dense(1, activation="linear")(X)
+  X = Dense(fully_connected_width, activation="relu")(X)
+  X = Dropout(hidden_dropout)(X)
+  X = Dense(1)(X)
 
   model = Model(inputs = X_input, outputs = X)
   return model

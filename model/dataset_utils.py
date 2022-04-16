@@ -43,20 +43,28 @@ def load_datasets(clean_data: Path,
 
   return loaded_datasets
 
-def generate_song_tensors(songs_df, solutions = True):
+def generate_song_tensors(songs_df = None, songs_list = None, solutions = True):
   """
-  Given a dataframe, generate tensors for model usage (train/test) by 
+  Given a dataframe(s), generate tensors for model usage (train/test) by 
   grouping songs and padding them to the maximum number of notes.
 
   Returns two items - two tensors if solutions are present, otherwise
   one tensor + none. 
   """
+  # ONE of the two options must be None, the other must not.
+  assert songs_df is not None or songs_list is not None
+  assert songs_df is None or songs_list is None
+  if songs_df is not None:
+    songs_list = songs_df.groupby([data_uid_col])
+  else:
+    songs_list = enumerate(songs_list)
+
   padded_songs_X = []
   padded_songs_Y = []
 
   dropped_songs = 0
   total_songs = 0
-  for _, song_df in tqdm(songs_df.groupby([data_uid_col]), desc="[INFO] Dataset Utils - Padding Songs"):
+  for _, song_df in tqdm(songs_list, desc="[INFO] Dataset Utils - Padding Songs"):
     total_songs += 1
     padded_df = pad_song_note_off(song_df, maximum_song_length, solutions)
     if padded_df is None:
@@ -73,9 +81,9 @@ def generate_song_tensors(songs_df, solutions = True):
       else:
         padded_songs_X.append(padded_df.to_numpy())
 
+  print("[INFO] Dataset Utils - Total dropped songs: %d out of %d." % (dropped_songs, total_songs))
 
   # Combine all of these into tensors. 
-  print("[INFO] Dataset Utils - Padding complete. Generating Tensors.")
   X_final = np.array(padded_songs_X)
   if solutions is True:
     Y_final = np.array(padded_songs_Y)
@@ -83,13 +91,10 @@ def generate_song_tensors(songs_df, solutions = True):
     # Sanity checks. 
     assert X_final.shape[0] == Y_final.shape[0]
     assert X_final.shape[1] == Y_final.shape[1]
+    return X_final, Y_final
   else:
-    Y_final = None
     print("[INFO] Dataset Utils - Generated tensor shape: X=%s" % (str(X_final.shape)))
-
-  # All done!
-  print("[INFO] Dataset Utils - Total dropped songs: %d out of %d." % (dropped_songs, total_songs))
-  return X_final, Y_final
+    return X_final
 
 def pad_song_note_off(song_df, max_notes, solutions=True):
   """
@@ -129,11 +134,14 @@ def pad_song_note_off(song_df, max_notes, solutions=True):
   # Combine the two. 
   song_df = pd.concat(objs=[song_df, padding_df], axis=0)
 
+  # Drop the song uid column. 
+  song_df = song_df.drop(labels=[data_uid_col], axis=1)
+
   # At the end, we need to ensure the song is a matrix of the
   # appropriate shape. 
   if solutions is False:
-    assert song_df.shape == (max_notes, 4)
+    assert song_df.shape == (max_notes, 3)
   else:
-    assert song_df.shape == (max_notes, 4 + len(data_solution_cols))
+    assert song_df.shape == (max_notes, 3 + len(data_solution_cols))
   
   return song_df

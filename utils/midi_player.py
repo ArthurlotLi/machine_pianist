@@ -48,11 +48,42 @@ class PianoPlayer:
       print("[ERROR] PianoPlayer was unable to locally play song from location '" + str(location) + "'. Exception: ")
       print(e)
 
-def print_first_x(mid, x):
+def print_first_x(mid, x, notes_only = False):
   """ 
   Print the first x lines of a midi files.  
   """
   for i, track in enumerate(mid.tracks):
     print('Track {}: {}'.format(i, track.name))
     for j in range(0, min(x, len(track))):
-      print(track[j])
+      if notes_only:
+        if track[j].type == "note_on":
+          print(track[j])
+      else:
+        print(track[j])
+    
+def graph_velocities(mid):
+  """
+  Visualize the velocities of a midi file. Only one track is used.
+  Meant to demonstrate the behavior of human vs automatic Midi 
+  performances. 
+  """
+  import matplotlib.pyplot as plt
+  graph_width_inches = 13
+  graph_height_inches = 7
+
+  assert len(mid.tracks) == 1
+
+  velocity_history = []
+  for j in range(0, len(mid.tracks[0])):
+    msg = mid.tracks[0][j]
+    if msg.type == "note_on":
+      velocity_history.append((j, msg.velocity))
+  
+  # Graph the history. 
+  fig = plt.figure(1)
+  fig.suptitle("Machine Pianist - Note velocity over time")
+  fig.set_size_inches(graph_width_inches,graph_height_inches)
+  plt.scatter(*zip(*velocity_history))
+  plt.xlabel("MIDI Message")
+  plt.ylabel("Note Velocity")
+  plt.show()
