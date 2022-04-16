@@ -44,14 +44,6 @@ from tqdm import tqdm
 # For multiprocessing.
 _num_processes = 10
 
-def preprocess_targeted_dataset(clean_data: Path, output_path: Path):
-  """
-  Given the path to a set of natural MIDI recordings of humans playing
-  the piano, generate a train/test dataset by preprocessing the files 
-  and extracting solution information (velocities + <= p control changes).
-  """
-  pass
-
 def preprocess_maestro(clean_data: Path, output_path: Path):
   """
   The Maestro dataset has a .csv that indicates whether a MIDI file
@@ -113,12 +105,16 @@ def preprocess_maestro(clean_data: Path, output_path: Path):
 
   # Combine all of the dataframes together into two big matrices.
   print("[INFO] Preprocess - Combining all dataframes.")
-  train_df = train_set[0]
+  train_df = None
   for df in tqdm(train_set, desc="[INFO] Preprocess - Concatenating train", unit="matrices"):
-    train_df = pd.concat(objs=[train_df, df], axis=0)
-  test_df = test_set[0]
+    if train_df is None: train_df = df
+    else:
+      train_df = pd.concat(objs=[train_df, df], axis=0)
+  test_df = None
   for df in tqdm(test_set, desc="[INFO] Preprocess - Concatenating test", unit="matrices"):
-    test_df = pd.concat(objs=[test_df, df], axis=0)
+    if test_df is None: test_df = df
+    else:
+      test_df = pd.concat(objs=[test_df, df], axis=0)
 
   # We've preprocessed everthing. Save to file. 
   print("[INFO] Preprocess - Saving Train and Test matrices of sizes %s and %s respectively." % (str(train_df.shape), str(test_df.shape)))

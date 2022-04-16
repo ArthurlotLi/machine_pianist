@@ -5,11 +5,12 @@
 # designed for equal-length sequence-to-sequence inference. Using
 # TensorFlow, simply because it's been a while since I used it. 
 
+from re import M
 from model.hparams import *
 
-from tensorflow.keras.models import Model
+from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.layers import Dense, Activation, Dropout, Input, TimeDistributed
-from tensorflow.keras.layers import GRU, BatchNormalization
+from tensorflow.keras.layers import GRU, BatchNormalization, Embedding
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint
 import tensorflow as tf
@@ -46,23 +47,59 @@ def machine_pianist(saved_models:Path, model_id: str):
   # Compile the model. 
   model.compile(optimizer=opt, loss=loss_function, metrics=metrics)
 
+  callbacks = get_callbacks(saved_models, model_id)
+
+  return model, callbacks
+
+def get_callbacks(saved_models:Path, model_id: str):
+  """
+  Get callbacks. Callable directly. 
+  """
+  model_location = saved_models.joinpath(model_id)
+  model_location.mkdir(exist_ok = True)
+
   # Callbacks. 
-  mcp = ModelCheckpoint(filepath=model_location.joinpath('model_%s_{val_mse:.5f}_{mse:.5f}_{epoch:02d}.h5' % model_id),
+  mcp = ModelCheckpoint(filepath=model_location.joinpath('%s_{val_mse:.5f}_{mse:.5f}_{epoch:02d}.h5' % model_id),
                         monitor=mcp_monitor, 
                         verbose=1, 
                         save_best_only=mcp_save_best_only)
   
   callbacks = [mcp]
-  return model, callbacks
+  return callbacks
 
 def _model():
   """
   Returns the model generated according to hparams.
   """
+  """
+  model = Sequential()
+
+  # First layer is an embedding. Embed the first _ notes before and
+  # generate the new prediction from those. 
+  model.add(Embedding(embedding_width,
+                      embedding_output, 
+                      input_length=embedding_input_len))
+  model.add(BatchNormalization())
+  model.add(Dropout(input_dropout))
+
+  # Hiden GRU layers.
+  for _ in range(0, gru_depth):
+    model.add(GRU(gru_width, 
+                  return_sequences=True))
+    model.add(BatchNormalization())
+    model.add(Dropout(hidden_dropout))
+  
+  # Output Layer
+  model.add(Activation('relu'))
+  model.add(TimeDistributed(Dense(1, activation="linear")))
+
+  return model
+  """
+
   X_input = Input(shape=input_dim)
   X = None
 
-  # First GRU layer. 
+  # First GRU layer.
   X = GRU(units = gru_width, return_sequences=True)(X_input)
   X = BatchNormalization()(X)
   X = Dropout(input_dropout)(X)
@@ -75,7 +112,7 @@ def _model():
   
   # Output layer - add a ReLU nonlinearity beforehand.
   X = Activation('relu')(X) 
-  X = TimeDistributed(Dense(1, activation="linear"))(X)
+  X = Dense(1, activation="linear")(X)
 
   model = Model(inputs = X_input, outputs = X)
   return model

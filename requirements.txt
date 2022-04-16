@@ -2,4 +2,3 @@ mido
 pygame # Debug tool. 
 
 tensorflow
-scikit_learn

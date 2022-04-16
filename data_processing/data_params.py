@@ -33,3 +33,5 @@ data_time_col = "time"
 data_note_on_col = "note_on"
 data_uid_col = "song"
 data_velocity_col = "velocity"
+
+data_solution_cols = [data_velocity_col]

@@ -214,12 +214,10 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame):
   TODO: Process control changes here! I'm out of time in this sprint,
   so we're doing the MVP!
   """
-
   # Only one track allowed.
   assert len(midi.tracks) == 1
 
   rows = []
-
   # Add the solution to the first note. It's obviously velocity 0.
   # TODO: Control changes. 
   rows.append((0,))
@@ -236,10 +234,7 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame):
       rows.append(row)
   
   # TODO: Control changes. You get that yet?
-  solution_df = pd.DataFrame(
-    rows,
-    columns = [data_velocity_col])
-  
+  solution_df = pd.DataFrame(rows, columns = [data_velocity_col])
   assert data.shape[0] == solution_df.shape[0]
 
   # Combine the solutions Y with the X dataframe.

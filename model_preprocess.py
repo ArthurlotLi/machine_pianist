@@ -15,7 +15,7 @@ from pathlib import Path
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
-  parser.add_argument("--clean_data", type=Path, default="./datasets/complete", help=
+  parser.add_argument("--clean_data", type=Path, default="./datasets", help=
     "The location of your datasets that you wish to use for training and or "
     "testing.")
   parser.add_argument("--dataset_types", type=str, default="maestro", help=
