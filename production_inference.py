@@ -18,6 +18,7 @@ from pathlib import Path
 from tqdm import tqdm
 import pandas as pd
 import time
+import argparse
 
 class MachinePianist:
   def __init__(self, model_path: Path):
@@ -64,25 +65,39 @@ class MachinePianist:
     return generate_output_midi(preprocessed_songs, Y_hat)
 
 # For debug usage.
+#
+# Usage (Graph only):
+# python production_inference -g -p
+#
+# Usage (Play):
+# python production_inference
 if __name__ == "__main__":
+  parser = argparse.ArgumentParser()
+  parser.add_argument("-g", default=False, action="store_true")
+  parser.add_argument("-p", default=True, action="store_false")
+  args = parser.parse_args()
+
   midi_files = [
     "./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid",
     "./midi_test/MIDI-Unprocessed_043_PIANO043_MID--AUDIO-split_07-06-17_Piano-e_1-03_wav--1.midi"
   ]
 
-  model_path = Path("./saved_models/model0/machine_pianist.h5")
+  model_path = Path("./production_models/model1/machine_pianist.h5")
 
   from utils.midi_player import *
 
-  for midi_path in midi_files:
-    midi, song_X = preprocess_midi(midi_file = midi_path, song_uid=0)
-    graph_velocities(midi)
+  if args.g is True:
+    for midi_path in midi_files:
+      midi, song_X = preprocess_midi(midi_file = midi_path, song_uid=0)
+      graph_velocities_notes(midi)
 
   pianist = MachinePianist(model_path)
   midis = pianist.perform_midis(midi_files)
 
   player = PianoPlayer()
   for midi in midis:
-    graph_velocities(midi)
+    if args.g is True:
+      graph_velocities_notes(midi)
     #print_first_x(midi, 500, notes_only=True)
-    #player.play_mido(midi, play_for=60, block=True, verbose=True)
+    if args.p is True:
+      player.play_mido(midi, block=True, verbose=True)

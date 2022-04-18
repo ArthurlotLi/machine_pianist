@@ -87,3 +87,37 @@ def graph_velocities(mid):
   plt.xlabel("MIDI Message")
   plt.ylabel("Note Velocity")
   plt.show()
+
+def graph_velocities_notes(mid):
+  """
+  Visualize the velocities AND notes of a midi file. Only one track 
+  is used. Mean to visualize the progression of the song alongside
+  the velocities predicted by the model. 
+  """
+  import matplotlib.pyplot as plt
+  graph_width_inches = 13
+  graph_height_inches = 7
+
+  assert len(mid.tracks) == 1
+
+  note_history = []
+  note_history_color = "black"
+  velocity_history = []
+  velocity_history_color = None
+  for j in range(0, len(mid.tracks[0])):
+    msg = mid.tracks[0][j]
+    if msg.type == "note_on":
+      note_history.append((j, msg.note))
+      velocity_history.append((j, msg.velocity))
+  
+  # Graph the history. 
+  fig = plt.figure(1)
+  fig.suptitle("Machine Pianist - Notes and Velocities over time")
+  fig.set_size_inches(graph_width_inches,graph_height_inches)
+  plt.scatter(*zip(*velocity_history), color=velocity_history_color)
+  plt.scatter(*zip(*note_history), color=note_history_color)
+  #plt.scatter(*zip(*velocity_history, *note_history), color=["white", "black"])
+  plt.xlabel("MIDI Message")
+  plt.ylabel("Note Velocity/Note ID")
+  plt.legend(['Velocities', 'Song Notes'], loc="upper left")
+  plt.show()

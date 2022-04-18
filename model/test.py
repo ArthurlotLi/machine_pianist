@@ -19,9 +19,10 @@ from matplotlib import pyplot as plt
 import pandas as pd
 from pathlib import Path
 import tensorflow as tf
+from tqdm import tqdm
 
 _minibatch_size = 12
-_use_gpu = True
+_use_gpu = False
 
 def test_models(model_location:Path, clean_data: Path, output_path: Path):
   """
@@ -41,15 +42,18 @@ def test_models(model_location:Path, clean_data: Path, output_path: Path):
   minibatch = []
   
   files = os.listdir(str(model_location))
+  model_files = []
 
   filename_uid = 0 # for sorting.
   for j in range(0, len(files)):
     filename = files[j]
     if filename.endswith("h5"):
-      minibatch.append(filename)
-      
+      model_files.append(filename)
+    
+  for j in tqdm(range(0, len(model_files)), desc = "[INFO] Test - Testing Progress", unit="models"):
+    minibatch.append(model_files[j])
     # If a minibatch has been filled OR we're at the end of files. 
-    if len(minibatch) == _minibatch_size or j == len(files)-1:
+    if len(minibatch) == _minibatch_size or j == len(model_files)-1:
       try:
         print("[INFO] Test - Processing minibatch: " + str(minibatch))
         ret_dict = {}
@@ -93,7 +97,7 @@ def test_models(model_location:Path, clean_data: Path, output_path: Path):
               chain_test_results[filename_uid] = "00.00000000 - " + str(filename) + " TEST FAILED!\n"
               chain_test_results_mse_map[-1] = filename_uid
             else:
-              chain_test_results[filename_uid] = "%.8f - " % (mse*100) + str(filename) + "\n"
+              chain_test_results[filename_uid] = "%.8f - " % (mse) + str(filename) + "\n"
               # If a model of that exact mse exists already, append
               # a tiny number to it until it's unique. 
               if mse in chain_test_results_mse_map:
@@ -137,9 +141,9 @@ def test_model_worker(queue, model_path, X_test, Y_test, mse_dict_name = "mse"):
 
   # Allow tensorflow growth during testing, so as to allow for 
   # multiprocessing to happen. 
-  config = tf.compat.v1.ConfigProto()
-  config.gpu_options.allow_growth=True
-  _ = tf.compat.v1.Session(config=config)
+  #config = tf.compat.v1.ConfigProto()
+  #config.gpu_options.allow_growth=True
+  #_ = tf.compat.v1.Session(config=config)
 
   if _use_gpu is False:
     # Expliclty stop the GPU from being utilized. Use this option
@@ -236,8 +240,8 @@ def graph_history(filename, chain_test_results, chain_test_results_mse_map):
 
       result_string_split = string_split_apos[1].split("_")
       epoch = int(result_string_split[3].split(".h")[0].strip())
-      val_mse = float(result_string_split[2].strip())*100
-      train_mse = float(result_string_split[1].strip())*100
+      val_mse = float(result_string_split[2].strip())
+      train_mse = float(result_string_split[1].strip())
       
       indices.append(epoch)
       test_mses.append(test_mse)
