@@ -101,7 +101,7 @@ def graph_velocities_notes(mid):
   assert len(mid.tracks) == 1
 
   note_history = []
-  note_history_color = "black"
+  note_history_color = "grey"
   velocity_history = []
   velocity_history_color = None
   for j in range(0, len(mid.tracks[0])):
@@ -114,10 +114,10 @@ def graph_velocities_notes(mid):
   fig = plt.figure(1)
   fig.suptitle("Machine Pianist - Notes and Velocities over time")
   fig.set_size_inches(graph_width_inches,graph_height_inches)
-  plt.scatter(*zip(*velocity_history), color=velocity_history_color)
   plt.scatter(*zip(*note_history), color=note_history_color)
+  plt.scatter(*zip(*velocity_history), color=velocity_history_color)
   #plt.scatter(*zip(*velocity_history, *note_history), color=["white", "black"])
   plt.xlabel("MIDI Message")
   plt.ylabel("Note Velocity/Note ID")
-  plt.legend(['Velocities', 'Song Notes'], loc="upper left")
+  plt.legend(['Song Notes', 'Velocities'], loc="upper left")
   plt.show()

@@ -1,5 +1,5 @@
 #
-# production_inference.py
+# machine_pianist_inference.py
 #
 # Primary entry point for users of this project in order to conduct
 # inference, having the machine pianist play their midi file in a
@@ -10,14 +10,14 @@
 
 from model.load_save import load_existing_model_path
 from model.dataset_utils import generate_song_tensors
+from model.hparams import *
 from data_processing.preprocess import preprocess_midi
 from data_processing.postprocess import generate_output_midi
 from data_processing.data_params import *
 
 from pathlib import Path
-from tqdm import tqdm
-import pandas as pd
 import time
+import tensorflow as tf
 import argparse
 
 class MachinePianist:
@@ -26,6 +26,12 @@ class MachinePianist:
     Loads the model immediately.
     """
     print("[INFO] Machine Pianist - Loading model at: %s." % model_path)
+
+    if allow_inference_tf_growth:
+      config = tf.compat.v1.ConfigProto()
+      config.gpu_options.allow_growth=True
+      _ = tf.compat.v1.Session(config=config)
+
     self._model = load_existing_model_path(model_path)
     if self._model is None:
       print("[ERROR] Machine Pianist - Failed to load model at %s." % model_path)
@@ -67,10 +73,10 @@ class MachinePianist:
 # For debug usage.
 #
 # Usage (Graph only):
-# python production_inference -g -p
+# python machine_pianist_inference -g -p
 #
 # Usage (Play):
-# python production_inference
+# python machine_pianist_inference
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("-g", default=False, action="store_true")
@@ -78,8 +84,11 @@ if __name__ == "__main__":
   args = parser.parse_args()
 
   midi_files = [
-    "./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid",
-    "./midi_test/MIDI-Unprocessed_043_PIANO043_MID--AUDIO-split_07-06-17_Piano-e_1-03_wav--1.midi"
+    "./midi_test/bang.mid",
+    #"./midi_test/model1_castle.mid",
+    #"./midi_test/seven nation army.mid",
+    #"./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid",
+    #"./midi_test/MIDI-Unprocessed_043_PIANO043_MID--AUDIO-split_07-06-17_Piano-e_1-03_wav--1.midi"
   ]
 
   model_path = Path("./production_models/model1/machine_pianist.h5")

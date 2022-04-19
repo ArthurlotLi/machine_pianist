@@ -9,6 +9,7 @@
 # should only be enabled to view VRAM loads in real time, and disabled
 # during proper training. 
 allow_tf_growth = False
+allow_inference_tf_growth = True
 
 training_verbose = True
 
