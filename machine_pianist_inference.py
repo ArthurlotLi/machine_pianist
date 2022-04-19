@@ -81,10 +81,13 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("-g", default=False, action="store_true")
   parser.add_argument("-p", default=True, action="store_false")
+  parser.add_argument("-d", default=False, action="store_true")
   args = parser.parse_args()
 
   midi_files = [
-    "./midi_test/bang.mid",
+    #"./midi_test/the roost.mid",
+    "./midi_test/toss a coin to your witcher.mid",
+    #"./midi_test/bang.mid",
     #"./midi_test/model1_castle.mid",
     #"./midi_test/seven nation army.mid",
     #"./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid",
@@ -95,11 +98,18 @@ if __name__ == "__main__":
 
   from utils.midi_player import *
 
+  if args.d is True:
+    from data_processing.midi_utils import read_midi
+    for midi_path in midi_files:
+      midi = read_midi(midi_path)
+      print_first_x(midi, 50, notes_only=True)
+
   if args.g is True:
     for midi_path in midi_files:
       midi, song_X = preprocess_midi(midi_file = midi_path, song_uid=0)
       graph_velocities_notes(midi)
-
+      if args.d is True: print_first_x(midi, 50, notes_only=True)
+    
   pianist = MachinePianist(model_path)
   midis = pianist.perform_midis(midi_files)
 
@@ -107,6 +117,6 @@ if __name__ == "__main__":
   for midi in midis:
     if args.g is True:
       graph_velocities_notes(midi)
-    #print_first_x(midi, 500, notes_only=True)
+    if args.d is True: print_first_x(midi, 50, notes_only=True)
     if args.p is True:
       player.play_mido(midi, block=True, verbose=True)

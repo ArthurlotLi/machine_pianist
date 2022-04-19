@@ -76,21 +76,21 @@ def harmonize_meta(midi: MidiFile):
     for j in range(0, len(track)):
       msg = track[j]
       if msg.is_meta:
-        all_meta_info.append(msg)
+        all_meta_info.append((msg, j))
 
   # Remove duplicates (in the case that we merged more than 1 track)
   unique_meta_info = []
-  for msg in all_meta_info:
-    if msg not in unique_meta_info:
-      unique_meta_info.append(msg)
+  for msg, j in all_meta_info:
+    if (msg, j) not in unique_meta_info:
+      unique_meta_info.append((msg, j))
 
   def print_meta(unique_meta_info):
     print("[INFO] Midi Utils - All meta info:")
-    for msg in unique_meta_info:
-      print("        %s" % msg)
+    for msg, j in unique_meta_info:
+      print("        %s [%d]" % (msg, j))
 
   #print_meta(unique_meta_info)
-
+      
   # We can expect the following meta messages:
   # - MetaMessage('time_signature', numerator=4, denominator=4, clocks_per_click=24, notated_32nd_notes_per_beat=8, time=0)
   # - MetaMessage('key_signature', key='Ab', time=0)
@@ -100,26 +100,24 @@ def harmonize_meta(midi: MidiFile):
   # These defaults are if the message is not provided. We only care 
   # about the tempo at this point.
   orig_tempo = 500000
-  present_set_tempo = False
+  music_tempos = []
 
-  for msg in unique_meta_info:
+  # Get ALL of the tempos (people may change the tempo to change how
+  # the sheet music fits on the pages)
+  for msg, j in unique_meta_info:
     if msg.type == 'set_tempo':
-      if present_set_tempo is False:
-        # Save the details if this our first time seeing this message.
-        orig_tempo = msg.tempo
-      else:
-        # Validate, if there are duplicate time_signature messages,
-        # that they are all the same. If not, PROBLEMS. There are some
-        # songs that DO change the tempo mid-song... we don't support
-        # those right now. 
-        if not(orig_tempo == msg.tempo):
-          print_meta(unique_meta_info)
-          print("[ERROR] Midi Utils - Duplicate set_tempo meta messages for track are different!")
-          return None
+      music_tempos.append((msg.tempo, j))
+
+  assert len(music_tempos) > 0
 
   # If the tempo matches what we need, no work is necessary. 
-  if orig_tempo == music_set_tempo:
+  if len(music_tempos) == 1 and music_tempos[0][0] == music_set_tempo:
     return midi
+
+  print("[INFO] Midi Utils - Refactoring %d midi tempo(s): %s -> %d." % (len(music_tempos), str(music_tempos), music_set_tempo))
+  #print_first_x(midi, 30)
+  #print(midi.ticks_per_beat)
+  #input()
 
   # Otherwise we NEED to revamp the entire midi file such that the 
   # requisite tempo is used. All of our training data is at 500,000, 
@@ -130,31 +128,41 @@ def harmonize_meta(midi: MidiFile):
   # There will be a slight, largely unnoticable difference between
   # the duration of the source and final. (~0.5 seconds for 120 
   # second songs). TODO to improve.
-  absolute_seconds = []
-  absolute_time_since_start = 0
-  for j in range(0, len(midi.tracks[0])):
-    msg = track[j]
-    additional_seconds = tick2second(msg.time, midi.ticks_per_beat, orig_tempo)
-    absolute_time_since_start += additional_seconds
-    absolute_seconds.append(absolute_time_since_start)
+  def change_tempo_range(track, start_i, end_i, orig_tempo):
+    """ Given a range of msg indices, change msg times. """
+    absolute_seconds = []
+    absolute_time_since_start = 0
+    for j in range(start_i, end_i):
+      msg = track[j]
+      additional_seconds = tick2second(msg.time, midi.ticks_per_beat, orig_tempo)
+      absolute_time_since_start += additional_seconds
+      absolute_seconds.append(absolute_time_since_start)
 
-  # Change the tempo now. 
-  for msg in unique_meta_info:
+    # And now map the absolute seconds to the new times of every message. 
+    time_of_last = 0
+    for j in range(start_i, end_i):
+      track[j].time = round(second2tick(absolute_seconds[j - start_i] - time_of_last, midi.ticks_per_beat, music_set_tempo))
+      time_of_last = absolute_seconds[j - start_i]
+    return track
+
+  for i in range(0, len(music_tempos)):
+    # Calculate the indices of the changes we need to make. 
+    if i < len(music_tempos) - 1:
+      end_i = music_tempos[i+1][1]
+    else:
+      end_i = len(midi.tracks[0])
+    start_i = music_tempos[i][1]
+    orig_tempo = music_tempos[i][0]
+    midi.tracks[0] = change_tempo_range(midi.tracks[0], start_i, end_i, orig_tempo)
+
+  # Change the tempos of all meta messages.  
+  for msg, _ in unique_meta_info:
     if msg.type == 'set_tempo':
       msg.tempo = music_set_tempo
 
-  # And now map the absolute seconds to the new times of every message. 
-  time_of_last = 0
-  for j in range(0, len(midi.tracks[0])):
-    track[j].time = round(second2tick(absolute_seconds[j] - time_of_last, midi.ticks_per_beat, music_set_tempo))
-    time_of_last = absolute_seconds[j]
-
   #print("[DEBUG] Midi Utils - Done. Result:")
   #print_first_x(midi, 30)
-  #player = PianoPlayer()
-  #start_time = time.time()
-  #player.play_mido(midi, None, block=True, verbose=True)
-  #print("Total time: %.2f" % (time.time() - start_time))
+  #input()
   return midi
 
 def generate_dataframe(midi: MidiFile):

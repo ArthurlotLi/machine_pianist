@@ -16,7 +16,7 @@ music_set_tempo = 500000 # Microseconds per quarter note.
 # 
 # Increasing this may potentially confuse the model but also may
 # increase the naturalness of pedal changes. Decreasing simplifies
-# things, but may make things easier. Experiment with this, and change
+# the song, but may make things easier. Experiment with this, and change
 # the capacity of the model in tandem. 
 p_granularity = 10
 

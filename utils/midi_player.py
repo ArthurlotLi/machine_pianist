@@ -7,7 +7,9 @@
 # Avoid the welcome message. 
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+
 import pygame 
+import time
 from mido import MidiFile
 
 class PianoPlayer:
@@ -35,6 +37,7 @@ class PianoPlayer:
     if verbose: print("[INFO] PianoPlayer playing song located: " + str(location) + ".")
     try:
       pygame.mixer.music.load(location)
+      if verbose: start_time = time.time()
       pygame.mixer.music.play()
       if block or (play_for is not None and play_for > 0):
         # If we're blocking, wait until we're done. 
@@ -43,7 +46,7 @@ class PianoPlayer:
           pygame.time.wait(500)
           if play_for is not None:
             play_for -= 0.5
-        if verbose: print("[DEBUG] PianoPlayer song complete.")
+        if verbose: print("[DEBUG] PianoPlayer completed in %.2f seconds." % (time.time()-start_time))
     except Exception as e:
       print("[ERROR] PianoPlayer was unable to locally play song from location '" + str(location) + "'. Exception: ")
       print(e)
