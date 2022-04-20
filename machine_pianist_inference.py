@@ -68,7 +68,7 @@ class MachinePianist:
     print("[INFO] Machine Pianist - Songs performed! Playtime: %.2f seconds." % (time.time() - start_time))
 
     # Get the postprocessed songs and return them.
-    return generate_output_midi(preprocessed_songs, Y_hat)
+    return generate_output_midi(preprocessed_songs, Y_hat, X)
 
 # For debug usage.
 #
@@ -86,15 +86,16 @@ if __name__ == "__main__":
 
   midi_files = [
     #"./midi_test/the roost.mid",
-    "./midi_test/toss a coin to your witcher.mid",
+    #"./midi_test/toss a coin to your witcher.mid",
     #"./midi_test/bang.mid",
     #"./midi_test/model1_castle.mid",
-    #"./midi_test/seven nation army.mid",
+    "./midi_test/seven nation army.mid",
     #"./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid",
-    #"./midi_test/MIDI-Unprocessed_043_PIANO043_MID--AUDIO-split_07-06-17_Piano-e_1-03_wav--1.midi"
+    #"./midi_test/MIDI-Unprocessed_043_PIANO043_MID--AUDIO-split_07-06-17_Piano-e_1-03_wav--1.midi",
+    #"./midi_test/MIDI-Unprocessed_Chamber3_MID--AUDIO_10_R3_2018_wav--1.midi"
   ]
 
-  model_path = Path("./production_models/model1/machine_pianist.h5")
+  model_path = Path("./production_models/model2/machine_pianist.h5")
 
   from utils.midi_player import *
 
@@ -108,7 +109,7 @@ if __name__ == "__main__":
     for midi_path in midi_files:
       midi, song_X = preprocess_midi(midi_file = midi_path, song_uid=0)
       graph_velocities_notes(midi)
-      if args.d is True: print_first_x(midi, 50, notes_only=True)
+      if args.d is True: print_first_x(midi, 50, notes_only=False)
     
   pianist = MachinePianist(model_path)
   midis = pianist.perform_midis(midi_files)
@@ -117,6 +118,6 @@ if __name__ == "__main__":
   for midi in midis:
     if args.g is True:
       graph_velocities_notes(midi)
-    if args.d is True: print_first_x(midi, 50, notes_only=True)
+    if args.d is True: print_first_x(midi, 500, notes_only=False)
     if args.p is True:
       player.play_mido(midi, block=True, verbose=True)

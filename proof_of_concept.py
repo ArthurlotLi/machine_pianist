@@ -18,7 +18,7 @@ import argparse
 
 repeat_duration = 4
 
-print_lines_amount = 200
+print_lines_amount = 30000
 
 demo_duration_natural = 30
 demo_duration_artificial = 30

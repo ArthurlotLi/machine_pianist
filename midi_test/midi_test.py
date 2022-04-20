@@ -9,6 +9,7 @@ from utils.midi_player import PianoPlayer, print_first_x
 from mido import MidiFile
 
 _test_file = "./midi_test/MIDI-Unprocessed_043_PIANO043_MID--AUDIO-split_07-06-17_Piano-e_1-03_wav--1.midi"
+_test_file2 = "./midi_test/MIDI-Unprocessed_Chamber3_MID--AUDIO_10_R3_2018_wav--1.midi"
 _downloaded_file = "./midi_test/Online Version.mid"
 
 _spider_dance = "./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid"
@@ -17,7 +18,7 @@ def output_midi_lines(lines_to_output):
   """ 
   Output x files of our test file.
   """
-  output_target = _spider_dance
+  output_target = _test_file2
   mid_test = MidiFile(output_target)
   print("\n[INFO] MIDI Test -First %s lines of %s:" % (lines_to_output, output_target))
   print_first_x(mid_test, lines_to_output)

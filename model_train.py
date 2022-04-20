@@ -4,7 +4,7 @@
 # Executes training on a preprocessed dataset. Straightforward.
 #
 # Usage:
-# python model_train.py model1
+# python model_train.py model2
 
 from model.train import train_machine_pianist
 

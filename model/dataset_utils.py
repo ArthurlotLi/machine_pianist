@@ -123,8 +123,11 @@ def pad_song_note_off(song_df, max_notes, solutions=True):
   if solutions is False:
     new_rows = [60, 0, 0, song_uid]
   else:
-    # TODO: Add more solutions.
     new_rows = [60, 0, 0, song_uid, 0]
+    # Add two zeros for each empty control change. 
+    for _ in range(0, p_granularity_total):
+      new_rows.append(0)
+      new_rows.append(0)
 
   # Generate a dataframe with copies of the same row. 
   padding_df = pd.DataFrame([new_rows], 

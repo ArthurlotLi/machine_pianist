@@ -105,16 +105,8 @@ def preprocess_maestro(clean_data: Path, output_path: Path):
 
   # Combine all of the dataframes together into two big matrices.
   print("[INFO] Preprocess - Combining all dataframes.")
-  train_df = None
-  for df in tqdm(train_set, desc="[INFO] Preprocess - Concatenating train", unit="matrices"):
-    if train_df is None: train_df = df
-    else:
-      train_df = pd.concat(objs=[train_df, df], axis=0)
-  test_df = None
-  for df in tqdm(test_set, desc="[INFO] Preprocess - Concatenating test", unit="matrices"):
-    if test_df is None: test_df = df
-    else:
-      test_df = pd.concat(objs=[test_df, df], axis=0)
+  train_df = pd.concat(objs=train_set, axis=0)
+  test_df = pd.concat(objs=test_set, axis=0)
 
   # We've preprocessed everthing. Save to file. 
   print("[INFO] Preprocess - Saving Train and Test matrices of sizes %s and %s respectively." % (str(train_df.shape), str(test_df.shape)))

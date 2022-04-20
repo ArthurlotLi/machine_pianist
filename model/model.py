@@ -7,10 +7,11 @@
 
 from re import M
 from model.hparams import *
+from data_processing.data_params import *
 
-from tensorflow.keras.models import Model, Sequential
-from tensorflow.keras.layers import Dense, Activation, Dropout, Input, TimeDistributed
-from tensorflow.keras.layers import GRU, BatchNormalization, Embedding
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Dense, Dropout, Input
+from tensorflow.keras.layers import GRU, BatchNormalization
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint
 import tensorflow as tf
@@ -84,7 +85,10 @@ def _model():
   
   X = Dense(fully_connected_width, activation="relu")(X)
   X = Dropout(hidden_dropout)(X)
-  X = Dense(1)(X)
+
+  # The size of the output layer should equal velocity + control
+  # changes + offset info.
+  X = Dense(len(data_solution_cols))(X)
 
   model = Model(inputs = X_input, outputs = X)
   return model

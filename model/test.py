@@ -21,7 +21,7 @@ from pathlib import Path
 import tensorflow as tf
 from tqdm import tqdm
 
-_minibatch_size = 12
+_minibatch_size = 10
 _use_gpu = False
 
 def test_models(model_location:Path, clean_data: Path, output_path: Path):
