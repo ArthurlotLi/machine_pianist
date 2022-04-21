@@ -36,10 +36,10 @@ maximum_song_length = 30000
 # Model architecture. We keep all layers at equal length
 # Expects (timesteps, feature).
 input_dim = (maximum_song_length,3) 
-gru_width = 128
-gru_depth = 3 # minimum of 1.
+gru_width = 96
+gru_depth = 2 # minimum of 1.
 assert gru_depth >= 1
-fully_connected_width = 128
+fully_connected_width = 64
 
 # Additional Regularization.
 input_dropout = 0.8
