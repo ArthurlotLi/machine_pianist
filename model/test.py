@@ -20,9 +20,10 @@ import pandas as pd
 from pathlib import Path
 import tensorflow as tf
 from tqdm import tqdm
+import time
 
-_minibatch_size = 10
-_use_gpu = False
+_minibatch_size = 1
+_use_gpu = True
 
 def test_models(model_location:Path, clean_data: Path, output_path: Path):
   """
@@ -82,6 +83,7 @@ def test_models(model_location:Path, clean_data: Path, output_path: Path):
         # Now wait for all of them.
         for p in minibatch_processes:
           tuple[0].join()
+        print("\n[INFO] Test - Waiting for queue results...")
         ret_dict_result = queue.get()
         print("\n[INFO] Test - Processes complete; results:")
         print(ret_dict_result) 
@@ -158,6 +160,8 @@ def test_model_worker(queue, model_path, X_test, Y_test, mse_dict_name = "mse"):
   # Evaluate the model. 
   loss, mse = model.evaluate(X_test, Y_test)
   print("[INFO] Test - Dev set MSE is: ", mse) 
+
+  time.sleep(5)
 
   ret_dict = queue.get()
   ret_dict[mse_dict_name] = mse

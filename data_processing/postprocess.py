@@ -164,6 +164,8 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array):
           control_change = controls[time_percentage]
           control_num = control_change[0]
           value = round(control_change[1])
+          value = min(value, 127)
+          value = max(value, 0)
 
           # Account for some odd numbers that might leak out of the
           # model.   

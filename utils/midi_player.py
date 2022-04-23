@@ -57,11 +57,15 @@ def print_first_x(mid, x, notes_only = False):
   """
   for i, track in enumerate(mid.tracks):
     print('Track {}: {}'.format(i, track.name))
-    for j in range(0, min(x, len(track))):
-      if notes_only:
+    if notes_only:
+      notes = []
+      for j in range(0, len(track)):
         if track[j].type == "note_on":
-          print(track[j])
-      else:
+          notes.append(track[j])
+      for j in range(0, min(x, len(notes))):
+        print(notes[j])
+    else:
+      for j in range(0, min(x, len(track))):
         print(track[j])
     
 def graph_velocities(mid):
@@ -123,4 +127,48 @@ def graph_velocities_notes(mid):
   plt.xlabel("MIDI Message")
   plt.ylabel("Note Velocity/Note ID")
   plt.legend(['Song Notes', 'Velocities'], loc="upper left")
+  plt.show()
+
+def graph_controls_notes(mid):
+  """
+  Visualize the velocities AND notes of a midi file AS WELL AS the 
+  control changes. Meant to demonstrate the entire picture of 
+  the performance data. 
+  """
+  import matplotlib.pyplot as plt
+  graph_width_inches = 13
+  graph_height_inches = 7
+
+  assert len(mid.tracks) == 1
+
+  note_history = []
+  note_history_color = "grey"
+  control_64_history = []
+  control_64_color = "green"
+  control_67_history = []
+  control_67_color = "purple"
+  for j in range(0, len(mid.tracks[0])):
+    msg = mid.tracks[0][j]
+    if msg.type == "note_on":
+      note_history.append((j, msg.note))
+    elif msg.type == "control_change":
+      control = msg.control 
+      if control == 64:
+        control_64_history.append((j, msg.value))
+      elif control == 67:
+        control_67_history.append((j, msg.value))
+  
+  # Graph the history. 
+  fig = plt.figure(1)
+  fig.suptitle("Machine Pianist - Notes and Velocities over time")
+  fig.set_size_inches(graph_width_inches,graph_height_inches)
+  plt.scatter(*zip(*note_history), color=note_history_color)
+  if len(control_64_history) > 0:
+    plt.scatter(*zip(*control_64_history), color=control_64_color)
+  if len(control_67_history) > 0:
+    plt.scatter(*zip(*control_67_history), color=control_67_color)
+  #plt.scatter(*zip(*velocity_history, *note_history), color=["white", "black"])
+  plt.xlabel("MIDI Message")
+  plt.ylabel("Control Value/Note ID")
+  plt.legend(['Song Notes', 'Sustain Control (64)', 'Soft Control (67)'], loc="upper left")
   plt.show()

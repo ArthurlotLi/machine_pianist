@@ -229,7 +229,54 @@ def generate_dataframe(midi: MidiFile):
 
   return song_df
 
-def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame):
+def extract_offsets(midi: MidiFile, data: pd.DataFrame,
+                    online_midi: MidiFile):
+  """
+  Given the preprocessed midi, it's initial X dataframe, as well as
+  the online midi from which offset values are to be derived, extract
+  offsets. Perhaps the most complex part of this entire preprocessing.
+
+  1. Verify the performance midi against the online midi. Remove extra
+     notes from the MIDI as well as the X dataframe. Ignore any notes
+     missing in the performance midi present in the online one. By all
+     accounts, these notes have never existed and processing (including
+     for control changes) will never know they were there.
+
+  2. For each remaining note in the performance midi, calculate the
+     OFFSET from when it is played in the online midi and when it is 
+     actually played - the subjective timing added either purposefully
+     or inadvertently that we wish to emulate with out model. 
+
+     These offsets should be calculated with absolute seconds in mind.
+     Starting from the absolute seconds of the last processed note, 
+     how long was the delay between that and the performed note? How
+     long was the delay for the online equivalent? (The last processed
+     note should be the same note regardless of order). The offset is
+     the difference between these delays and can be positive or 
+     negative. 
+     
+     The "last note" to use for this should be the last note in the 
+     ONLINE midi. This may result in wonkiness, with the performed
+     note perhaps having happened BEFORE the "last note" in the online
+     midi. This is fine. 
+      
+  3. Save all offsets in a list to be added as a final column to the 
+     dataframe in the next preprocessing step. 
+
+  4. Replace all times in the dataframe with the absolute seconds since
+     the last note in the ONLINE midi, overwriting data from the  
+     performed midi. DO NOT make these same changes to the midi itself,
+     as the control changes will continue to be processed as if the 
+     times were the same. We are essentially splitting the genuine
+     time of the performed notes into two pieces of info - the online
+     midi's timing, as well as the offset information for the model
+     to predict. 
+  """
+  return midi, data, []
+
+
+def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
+                           offsets: list):
   """
   Given the preprocessed midi as well as the dataframe of the extracted
   rows, generate solutions. This goes back and uses the non-zero 

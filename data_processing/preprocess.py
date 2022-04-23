@@ -43,6 +43,7 @@ from tqdm import tqdm
 
 # For multiprocessing.
 _num_processes = 10
+_enable_multiprocessing = False
 
 def preprocess_maestro(clean_data: Path, output_path: Path):
   """
@@ -82,16 +83,23 @@ def preprocess_maestro(clean_data: Path, output_path: Path):
   for index, row in maestro_csv.iterrows():
     # For each line item, get the midi path and whether it should be
     # a train or test. All other info is irrelevant. 
-    song_split = row["split"]
+    song_split = row[maestro_col_split]
     # Given the nature of this project, we will pass on the val set.
     song_split = song_split.replace("validation", "train")
-    song_midi = dataset_location.joinpath(row["midi_filename"])
+    song_midi = dataset_location.joinpath(row[maestro_col_midi])
+    online_midi = dataset_location.joinpath(row[maestro_augmented_midi])
 
-    jobs.append((song_uid, song_split, song_midi))
+    jobs.append((song_uid, song_split, song_midi, online_midi))
     song_uid += 1
 
-  job = Pool(_num_processes).imap(process_maestro_row, jobs)
-  job_results = tqdm(job, desc="[INFO] Preprocess - Maestro Dataset", unit="songs", total=maestro_csv.shape[0])
+  if _enable_multiprocessing is True:
+    job = Pool(_num_processes).imap(process_maestro_row, jobs)
+    job_results = tqdm(job, desc="[INFO] Preprocess - Maestro Dataset", unit="songs", total=maestro_csv.shape[0])
+  else:
+    # Only disable multiprocessing for development purposes. 
+    job_results = []
+    for job in tqdm(jobs, desc="[INFO] Preprocess - Maestro Dataset (MULTIPROCESSING DISABLED)", unit="songs", total=maestro_csv.shape[0]):
+      job_results.append(process_maestro_row(job))
 
   for X_Y_df, song_split in job_results:
     if song_split == "train":
@@ -116,10 +124,10 @@ def preprocess_maestro(clean_data: Path, output_path: Path):
   print("[INFO] Preprocess - All done! Happy training. ")
 
 def process_maestro_row(args):
-  song_uid, song_split, song_midi = args[0], args[1], args[2]
+  song_uid, song_split, song_midi, online_midi = args[0], args[1], args[2], args[3]
   # Go ahead and preprocess each MIDI. 
   midi, X_df = preprocess_midi(song_midi, song_uid)
-  X_Y_df = generate_solutions(midi, X_df)
+  X_Y_df = generate_solutions(midi, X_df, online_midi, song_uid)
   return X_Y_df, song_split
 
 def preprocess_midi(midi_file: Path, song_uid: int):
@@ -143,13 +151,31 @@ def preprocess_midi(midi_file: Path, song_uid: int):
 
   return midi, df
 
-def generate_solutions(midi: MidiFile, data: pd.DataFrame):
+def generate_solutions(midi: MidiFile, data: pd.DataFrame,
+                       online_midi_path: Path, song_uid: int):
   """
   Given the path to a MIDI file, extract solutions for test/train, as
   it is expected that this file will contain performance data of actual
   humans. Compile note velocities as well as control changes into the
   solution column, executing control change downsampling if necessary.
 
+  Also takes in a online midi variant from the augmented maestro dataset. 
+  This variant will be validated against the human performance; extra 
+  notes will be dropped from the performance midi, where as missing 
+  notes will be ignored. For remaining notes, the absolute times will 
+  be modified to exactly match the ground truths.
+
   Returns the final dataframe with solutions for each timestep. 
   """
-  return generate_sol_dataframe(midi, data)
+  # Process the online variant appropriately. 
+  online_midi = read_midi(online_midi_path)
+  online_midi = combine_tracks(online_midi, song_uid)
+  online_midi = harmonize_meta(online_midi)
+
+  print_first_x(midi, x=30, notes_only=True)
+  print_first_x(online_midi, x=30, notes_only=True)
+  input()
+
+  midi, data, offsets = extract_offsets(midi, data, online_midi)
+
+  return generate_sol_dataframe(midi, data, offsets)
