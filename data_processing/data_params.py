@@ -18,9 +18,9 @@ music_set_tempo = 500000 # Microseconds per quarter note.
 # increase the naturalness of pedal changes. Decreasing simplifies
 # the song, but may make things easier. Experiment with this, and change
 # the capacity of the model in tandem. 
-p_granularity_64 = 15 # Sustain pedal info.
-p_granularity_66 = 5 # Sostenuto pedal info.
-p_granularity_67 = 5 # Soft pedal info.
+p_granularity_64 = 14 # Sustain pedal info.
+p_granularity_66 = 6 # Sostenuto pedal info.
+p_granularity_67 = 6 # Soft pedal info.
 p_granularity_total = p_granularity_64 + p_granularity_66 + p_granularity_67
 
 # Maestro dataset info. Expects an augmented dataset that provides 

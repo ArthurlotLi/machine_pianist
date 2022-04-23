@@ -291,15 +291,17 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
   rows = []
   track = midi.tracks[0]
 
-  def generate_x_empty_controls(x):
-    """ Generate a 2 * x sized array of 0s. """
+  def generate_x_empty_controls(x,value):
+    """ 
+    Generate a 2 * x sized array of a certain control change value. 
+    """
     return_list = []
     for _ in range(0, x):
-      return_list.append(0)
-      return_list.append(0)
+      return_list.append(value) # Value is the last control change.
+      return_list.append(0) # Time is 0. 
     return return_list
 
-  def average_pad_control_changes(control_changes, p, total_time_to_next_note):
+  def average_pad_control_changes(control_changes, p, total_time_to_next_note, last_value):
     """
     Given a list of tuples for control changes (value, time), do one
     of three things depending on the maximum granularity (p). 
@@ -327,34 +329,16 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
       assert squished_time >= 0.0 and squished_time <= 1.0
       return squished_time
 
-    def even_select(N, M):
-      """ 
-      Given N elements, sample M (<= N) values as evenly spaced as
-      possible. Fantastic code... not mine! 
-      https://stackoverflow.com/questions/46494029/nearly-evenly-select-items-from-a-list 
-      """
-      if M > N/2:
-        cut = np.zeros(N, dtype=int)
-        q, r = divmod(N, N-M)
-        indices = [q*i + min(i, r) for i in range(N-M)]
-        cut[indices] = True
-      else:
-        cut = np.ones(N, dtype=int)
-        q, r = divmod(N, M)
-        indices = [q*i + min(i, r) for i in range(M)]
-        cut[indices] = False
-
-      return cut
-
     controls_vector = []
     if len(control_changes) <= p:
       # 1 & 2) Pad up to p if necessary.
       for item in control_changes:
         controls_vector.append(item[0]) # value
         controls_vector.append(squish_time(item[1])) # time
+        last_value = item[0]
       # Pad the remainder (if necessary) 
       for _ in range(0, (p - len(control_changes))):
-        controls_vector.append(0)
+        controls_vector.append(last_value)
         controls_vector.append(0)
     else:
       # 3) Sample p equidistant values. 
@@ -363,22 +347,57 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
       controls_vector.append(control_changes[0][0])
       controls_vector.append(squish_time(control_changes[0][1]))
 
-      # For the values in between, sample equidistantly. 
-      cut = even_select(len(control_changes) - 2, p - 2)
-      assert len(cut) == len(control_changes) -2
-      for i in range(len(cut)): 
-        index = i + 1 # offset against first control change. 
-        if cut[i] == 0:
-          item = control_changes[index]
-          controls_vector.append(item[0]) # value
-          controls_vector.append(squish_time(item[1])) # time
+      # Sample from the pool of control changes between the first and
+      # the last. Progressively pluck from the maxes and the mins - 
+      # the most important of the changes. 
+      if p > 2:
+        # Create a dict keyed by control value, valued by time AND
+        # the original index of the controls dict. 
+        controls_dict = {}
+        for i in range(1, len(control_changes) - 1):
+          controls_dict[control_changes[i][0]] = (control_changes[i][1], i)
+        # Sort the dict in order of smallest to largest control value. 
+        # Pluck the maxes and mins until we run out of space. 
+        sorted_controls_dict = dict(sorted(controls_dict.items(), key=lambda item: item[0]))
+        items_needed = p - 2
+        items_max = items_needed // 2
+        items_min = items_needed - items_max
+        assert items_min + items_max == items_needed
+        sorted_controls_list = list(sorted_controls_dict)
+        items_max_list = []
+        items_min_list = []
+        for key in sorted_controls_list[0:items_max]:
+          value = sorted_controls_dict[key]
+          items_max_list.append((key, value))
+        for key in list(reversed(sorted_controls_list))[0:items_min]:
+          value = sorted_controls_dict[key]
+          items_min_list.append((key, value))
+        assert len(items_max_list) + len(items_min_list) == p - 2
+
+        # Now we need to make sure we add these back in chronologically,
+        # otherwise we'll screw everything up. TODO: This is clumsy.
+        added_items = 0
+        for i in range(1, len(control_changes) - 1):
+          for item in items_max_list:
+            if item[1][1] == i:
+              controls_vector.append(item[0])
+              controls_vector.append(squish_time(item[1][0]))
+              added_items += 1
+              continue
+          for item in items_min_list:
+            if item[1][1] == i:
+              controls_vector.append(item[0])
+              controls_vector.append(squish_time(item[1][0]))
+              added_items += 1
+        assert added_items == p -2
 
       # Always add the final control change. 
       controls_vector.append(control_changes[-1][0])
       controls_vector.append(squish_time(control_changes[-1][1]))
+      last_value = control_changes[-1][0]
       
     assert len(controls_vector) == p*2
-    return controls_vector
+    return controls_vector, last_value
 
   # Add the solution to the first note. It's obviously velocity 0.
   empty_note = (0, 0)
@@ -393,6 +412,10 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
 
   # For each note that we read, add control change information between
   # when it is played and when the next note (or end of song) occurs.
+  # Retain the last values and feed this in for empty values. 
+  last_64 = 127 # 127 is fully off. 
+  last_66 = 127
+  last_67 = 127
   for i in range(0, len(note_msgs)):
     note_index, sol_velocity = note_msgs[i][0], note_msgs[i][1]
 
@@ -409,7 +432,7 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
     if note_index == next_note_index:
       # Edge case of the first note being the first message. Fill with
       # p empty controls. 
-      new_row += generate_x_empty_controls(p_granularity_total)
+      new_row += generate_x_empty_controls(p_granularity_total, 127)
     else:
       # For the time of controls, we cannot use the ACTUAL time,
       # as trying predict the actual time will lead to chaos when
@@ -447,9 +470,12 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
 
       # Now we have all the control changes. We have a few options here.
       # For each p (64, 66, and 67), average or pad if necessary.
-      new_row += average_pad_control_changes(control_64, p_granularity_64, total_time_to_next_note)
-      new_row += average_pad_control_changes(control_66, p_granularity_66, total_time_to_next_note)
-      new_row += average_pad_control_changes(control_67, p_granularity_67, total_time_to_next_note)
+      changes_64, last_64 = average_pad_control_changes(control_64, p_granularity_64, total_time_to_next_note, last_64)
+      changes_66, last_66 = average_pad_control_changes(control_66, p_granularity_66, total_time_to_next_note, last_66)
+      changes_67, last_67 = average_pad_control_changes(control_67, p_granularity_67, total_time_to_next_note, last_67)
+      new_row += changes_64
+      new_row += changes_66
+      new_row += changes_67
 
     # At the end, do some sanity checks. 
     assert len(new_row) == ((p_granularity_total*2) + 1)
