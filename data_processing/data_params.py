@@ -26,9 +26,10 @@ p_granularity_total = p_granularity_64 + p_granularity_66 + p_granularity_67
 # Maestro dataset info. Expects an augmented dataset that provides 
 # "baseline" midi files accompanying each performance in order to
 # extract note offset solution information. 
-maestro_dataset_folder = "maestro_test" # TODO: Obvi, change me.
-#maestro_dataset_folder = "maestro-v3.0.0"
-maestro_dataset_csv = "maestro-v3.0.0_augmented.csv"
+#maestro_dataset_folder = "maestro_test" # TODO: Obvi, change me.
+maestro_dataset_folder = "maestro-v3.0.0"
+#maestro_dataset_csv = "maestro-v3.0.0_augmented.csv"
+maestro_dataset_csv = "maestro-v3.0.0.csv"
 maestro_col_split = "split"
 maestro_col_midi = "midi_filename"
 maestro_augmented_midi = "online_variant_midi"

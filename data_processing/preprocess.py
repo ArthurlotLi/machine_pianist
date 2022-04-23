@@ -43,7 +43,7 @@ from tqdm import tqdm
 
 # For multiprocessing.
 _num_processes = 10
-_enable_multiprocessing = False
+_enable_multiprocessing = True
 
 def preprocess_maestro(clean_data: Path, output_path: Path):
   """
@@ -87,7 +87,9 @@ def preprocess_maestro(clean_data: Path, output_path: Path):
     # Given the nature of this project, we will pass on the val set.
     song_split = song_split.replace("validation", "train")
     song_midi = dataset_location.joinpath(row[maestro_col_midi])
-    online_midi = dataset_location.joinpath(row[maestro_augmented_midi])
+    # TODO: Note offsets. 
+    #online_midi = dataset_location.joinpath(row[maestro_augmented_midi])
+    online_midi = None
 
     jobs.append((song_uid, song_split, song_midi, online_midi))
     song_uid += 1
@@ -167,15 +169,17 @@ def generate_solutions(midi: MidiFile, data: pd.DataFrame,
 
   Returns the final dataframe with solutions for each timestep. 
   """
+  # TODO: Note offsets.
   # Process the online variant appropriately. 
-  online_midi = read_midi(online_midi_path)
-  online_midi = combine_tracks(online_midi, song_uid)
-  online_midi = harmonize_meta(online_midi)
+  #online_midi = read_midi(online_midi_path)
+  #online_midi = combine_tracks(online_midi, song_uid)
+  #online_midi = harmonize_meta(online_midi)
 
-  print_first_x(midi, x=30, notes_only=True)
-  print_first_x(online_midi, x=30, notes_only=True)
-  input()
+  #print_first_x(midi, x=30, notes_only=True)
+  #print_first_x(online_midi, x=30, notes_only=True)
+  #input()
 
-  midi, data, offsets = extract_offsets(midi, data, online_midi)
+  #midi, data, offsets = extract_offsets(midi, data, online_midi)
+  offsets = []
 
   return generate_sol_dataframe(midi, data, offsets)
