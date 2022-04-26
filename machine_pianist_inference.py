@@ -95,7 +95,7 @@ if __name__ == "__main__":
     #"./midi_test/MIDI-Unprocessed_Chamber3_MID--AUDIO_10_R3_2018_wav--1.midi"
   ]
 
-  model_path = Path("./production_models/model3/machine_pianist.h5")
+  model_path = Path("./production_models/model4/machine_pianist.h5")
 
   from utils.midi_player import *
 

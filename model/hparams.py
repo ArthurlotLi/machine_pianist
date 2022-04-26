@@ -31,15 +31,15 @@ metrics = ["mse"]
 # The key that scales the model + the songs it can play. All songs,
 # when read it, will be padded up to this length with note-offs
 # at time=0. Songs with more notes than this will be rejected.
-maximum_song_length = 30000 
+maximum_song_length = 18000 
 
 # Model architecture. We keep all layers at equal length
 # Expects (timesteps, feature).
 input_dim = (maximum_song_length,3) 
-gru_width = 96
-gru_depth = 2 # minimum of 1.
+gru_width = 256
+gru_depth = 3 # minimum of 1.
 assert gru_depth >= 1
-fully_connected_width = 64
+fully_connected_width = 256
 
 # Additional Regularization.
 input_dropout = 0.8

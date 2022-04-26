@@ -355,7 +355,13 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
         # the original index of the controls dict. 
         controls_dict = {}
         for i in range(1, len(control_changes) - 1):
-          controls_dict[control_changes[i][0]] = (control_changes[i][1], i)
+          value = int(control_changes[i][0])
+          while value in controls_dict:
+            # For the sake of sorting, avoid issue of duplicates by 
+            # marginally increasing the value.
+            value += 0.000001
+          controls_dict[value] = (control_changes[i][1], i)
+
         # Sort the dict in order of smallest to largest control value. 
         # Pluck the maxes and mins until we run out of space. 
         sorted_controls_dict = dict(sorted(controls_dict.items(), key=lambda item: item[0]))
@@ -380,13 +386,13 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
         for i in range(1, len(control_changes) - 1):
           for item in items_max_list:
             if item[1][1] == i:
-              controls_vector.append(item[0])
+              controls_vector.append(round(item[0])) # Remove any sorting key offsets.
               controls_vector.append(squish_time(item[1][0]))
               added_items += 1
               continue
           for item in items_min_list:
             if item[1][1] == i:
-              controls_vector.append(item[0])
+              controls_vector.append(round(item[0])) # Remove any sorting key offsets.
               controls_vector.append(squish_time(item[1][0]))
               added_items += 1
         assert added_items == p -2

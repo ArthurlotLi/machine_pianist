@@ -73,13 +73,15 @@ def _model():
   X = None
 
   # First GRU layer.
-  X = Bidirectional(GRU(units = gru_width, return_sequences=True))(X_input)
+  #X = Bidirectional(GRU(units = gru_width, return_sequences=True))(X_input)
+  X = GRU(units = gru_width, return_sequences=True)(X_input)
   X = BatchNormalization()(X)
   X = Dropout(input_dropout)(X)
 
   # Hiden GRU layers.
   for _ in range(1, gru_depth):
-    X = Bidirectional(GRU(units = gru_width, return_sequences=True))(X)
+    #X = Bidirectional(GRU(units = gru_width, return_sequences=True))(X)
+    X = GRU(units = gru_width, return_sequences=True)(X)
     X = BatchNormalization()(X)
     X = Dropout(hidden_dropout)(X)
   
