@@ -1,4 +1,7 @@
 mido
 pygame # Debug tool. 
 
+numpy
+pandas
+
 tensorflow

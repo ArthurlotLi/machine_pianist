@@ -89,13 +89,13 @@ if __name__ == "__main__":
     #"./midi_test/toss a coin to your witcher.mid",
     #"./midi_test/bang.mid",
     #"./midi_test/model1_castle.mid",
-    "./midi_test/seven nation army.mid",
-    #"./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid",
+    #"./midi_test/seven nation army.mid",
+    "./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid",
     #"./midi_test/MIDI-Unprocessed_043_PIANO043_MID--AUDIO-split_07-06-17_Piano-e_1-03_wav--1.midi",
     #"./midi_test/MIDI-Unprocessed_Chamber3_MID--AUDIO_10_R3_2018_wav--1.midi"
   ]
 
-  model_path = Path("./production_models/model4/machine_pianist.h5")
+  model_path = Path("./production_models/model3/machine_pianist.h5")
 
   from utils.midi_player import *
 
@@ -104,6 +104,7 @@ if __name__ == "__main__":
     for midi_path in midi_files:
       midi = read_midi(midi_path)
       print_first_x(midi, 50, notes_only=True)
+      midi_statistics(midi)
 
   if args.g is True:
     for midi_path in midi_files:

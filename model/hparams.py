@@ -31,7 +31,7 @@ metrics = ["mse"]
 # The key that scales the model + the songs it can play. All songs,
 # when read it, will be padded up to this length with note-offs
 # at time=0. Songs with more notes than this will be rejected.
-maximum_song_length = 18000 
+maximum_song_length = 10000 
 
 # Model architecture. We keep all layers at equal length
 # Expects (timesteps, feature).

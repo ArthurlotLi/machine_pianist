@@ -68,6 +68,13 @@ def print_first_x(mid, x, notes_only = False):
       for j in range(0, min(x, len(track))):
         print(track[j])
     
+def midi_statistics(mid):
+  """ 
+  Print the number of notes in the song. 
+  """
+  for i, track in enumerate(mid.tracks):
+    print('[INFO] Midi Player - Track {}: {} - Length: {}'.format(i, track.name, str(len(track))))
+
 def graph_velocities(mid):
   """
   Visualize the velocities of a midi file. Only one track is used.
