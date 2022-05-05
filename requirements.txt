@@ -1,7 +1,8 @@
-mido
-pygame # Debug tool. 
+mido==1.2.10
+pygame==2.1.2 # Debug tool. 
 
-numpy
-pandas
+numpy==1.19.5
+pandas==1.1.5
 
-tensorflow
+tensorflow==2.6.0
+keras==2.6.0

@@ -8,7 +8,7 @@
 # Allows for model inference, provided piano midi file(s) to load
 # and conduct inference on. 
 
-from model.load_save import load_existing_model_path
+from model.load_save import load_existing_model_path, load_scaler
 from model.dataset_utils import generate_song_tensors
 from model.hparams import *
 from data_processing.preprocess import preprocess_midi
@@ -21,7 +21,7 @@ import tensorflow as tf
 import argparse
 
 class MachinePianist:
-  def __init__(self, model_path: Path):
+  def __init__(self, model_path: Path, scaler_X_path:Path, scaler_Y_path:Path):
     """
     Loads the model immediately.
     """
@@ -36,6 +36,9 @@ class MachinePianist:
     if self._model is None:
       print("[ERROR] Machine Pianist - Failed to load model at %s." % model_path)
       assert False
+
+    self._scaler_X = load_scaler(str(scaler_X_path))
+    self._scaler_Y = load_scaler(str(scaler_Y_path))
 
   def perform_midis(self, midi_files: list):
     """
@@ -59,7 +62,8 @@ class MachinePianist:
     assert len(preprocessed_songs) > 0 and len(preprocessed_dfs) > 0
 
     # Now let's make sure to pad every single song here. 
-    X = generate_song_tensors(songs_list=preprocessed_dfs, solutions=False)
+    X = generate_song_tensors(songs_list=preprocessed_dfs, solutions=False, 
+                              scaler_X=self._scaler_X, scaler_Y=self._scaler_Y)
 
     # We now have a complete X dataframe. Conduct inference. 
     print("[INFO] Machine Pianist - Performing songs...")
@@ -68,7 +72,8 @@ class MachinePianist:
     print("[INFO] Machine Pianist - Songs performed! Playtime: %.2f seconds." % (time.time() - start_time))
 
     # Get the postprocessed songs and return them.
-    return generate_output_midi(preprocessed_songs, Y_hat, X)
+    return generate_output_midi(preprocessed_songs, Y_hat, X, 
+                                scaler_X=self._scaler_X, scaler_Y=self._scaler_Y)
 
 # For debug usage.
 #
@@ -85,17 +90,21 @@ if __name__ == "__main__":
   args = parser.parse_args()
 
   midi_files = [
-    #"./midi_test/the roost.mid",
+    #"../kotakee_companion/speech_server/piano_player/now_playing/the roost.mid",
+    "../kotakee_companion/speech_server/piano_player/now_playing/velvet room.mid",
     #"./midi_test/toss a coin to your witcher.mid",
     #"./midi_test/bang.mid",
     #"./midi_test/model1_castle.mid",
     #"./midi_test/seven nation army.mid",
-    "./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid",
+    #"./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid",
     #"./midi_test/MIDI-Unprocessed_043_PIANO043_MID--AUDIO-split_07-06-17_Piano-e_1-03_wav--1.midi",
     #"./midi_test/MIDI-Unprocessed_Chamber3_MID--AUDIO_10_R3_2018_wav--1.midi"
   ]
 
-  model_path = Path("./production_models/model3/machine_pianist.h5")
+  model = "model5"
+  model_path = Path("./production_models/%s/machine_pianist.h5" % model)
+  scaler_X_path = Path("./saved_models/%s_scaler_X.bin" % model)
+  scaler_Y_path = Path("./saved_models/%s_scaler_Y.bin" % model)
 
   from utils.midi_player import *
 
@@ -113,7 +122,7 @@ if __name__ == "__main__":
       graph_controls_notes(midi)
       if args.d is True: print_first_x(midi, 50, notes_only=False)
     
-  pianist = MachinePianist(model_path)
+  pianist = MachinePianist(model_path, scaler_X_path, scaler_Y_path)
   midis = pianist.perform_midis(midi_files)
 
   player = PianoPlayer()

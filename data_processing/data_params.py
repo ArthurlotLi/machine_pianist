@@ -18,10 +18,12 @@ music_set_tempo = 500000 # Microseconds per quarter note.
 # increase the naturalness of pedal changes. Decreasing simplifies
 # the song, but may make things easier. Experiment with this, and change
 # the capacity of the model in tandem. 
-p_granularity_64 = 14 # Sustain pedal info.
-p_granularity_66 = 6 # Sostenuto pedal info.
-p_granularity_67 = 6 # Soft pedal info.
-p_granularity_total = p_granularity_64 + p_granularity_66 + p_granularity_67
+p_granularity_64 = 2 # Sustain pedal info.
+#p_granularity_66 = 0 # Sostenuto pedal info.
+#p_granularity_67 = 2 # Soft pedal info.
+#p_granularity_total = p_granularity_64 + p_granularity_66 + p_granularity_67
+#p_granularity_total = p_granularity_64 + p_granularity_67
+p_granularity_total = p_granularity_64
 
 # Maestro dataset info. Expects an augmented dataset that provides 
 # "baseline" midi files accompanying each performance in order to
@@ -43,14 +45,16 @@ data_note_on_col = "note_on"
 data_uid_col = "song"
 data_velocity_col = "velocity"
 
+data_input_cols = [data_note_col, data_time_col, data_note_on_col]
+
 data_solution_cols = [data_velocity_col]
 for i in range(0, p_granularity_64): 
   data_solution_cols.append("64v%d" % i)
   data_solution_cols.append("64t%d" % i)
-for i in range(0, p_granularity_66): 
-  data_solution_cols.append("66v%d" % i)
-  data_solution_cols.append("66t%d" % i)
-for i in range(0, p_granularity_67): 
-  data_solution_cols.append("67v%d" % i)
-  data_solution_cols.append("67t%d" % i)
+#for i in range(0, p_granularity_66): 
+  #data_solution_cols.append("66v%d" % i)
+  #data_solution_cols.append("66t%d" % i)
+#for i in range(0, p_granularity_67): 
+  #data_solution_cols.append("67v%d" % i)
+  #data_solution_cols.append("67t%d" % i)
 assert len(data_solution_cols) == ((p_granularity_total*2) + 1)

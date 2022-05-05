@@ -11,21 +11,23 @@
 # detection file and is thus mostly the code of a younger me. 
 
 from model.dataset_utils import load_datasets, generate_song_tensors
-from model.load_save import load_existing_model_path
+from model.load_save import load_existing_model_path, load_scaler
 
 import os
-import multiprocessing
+from multiprocessing import Pool
+from functools import partial
 from matplotlib import pyplot as plt
 import pandas as pd
 from pathlib import Path
-import tensorflow as tf
 from tqdm import tqdm
 import time
+import tensorflow as tf
 
-_minibatch_size = 1
+_num_processes = 1
 _use_gpu = True
 
-def test_models(model_location:Path, clean_data: Path, output_path: Path):
+def test_models(model_location:Path, clean_data: Path, output_path: Path,
+                scaler_X_path: Path, scaler_Y_path: Path):
   """
   Given directory of model(s) to test, execute a chain test. 
   """
@@ -35,10 +37,13 @@ def test_models(model_location:Path, clean_data: Path, output_path: Path):
   chain_test_results = {}
   chain_test_results_mse_map = {}
 
+  scaler_X = load_scaler(str(scaler_X_path))
+  scaler_Y = load_scaler(str(scaler_Y_path))
+
   # Load the test dataset and preprocess it. 
   test_df = load_datasets(clean_data = clean_data, load_test=True)[0]
   test_df = test_df.loc[:, ~test_df.columns.str.contains('^Unnamed')]
-  X_test, Y_test = generate_song_tensors(songs_df = test_df, solutions=True)
+  X_test, Y_test, _, _ = generate_song_tensors(songs_df = test_df, solutions=True, scaler_X=scaler_X, scaler_Y=scaler_Y)
 
   minibatch = []
   
@@ -49,80 +54,36 @@ def test_models(model_location:Path, clean_data: Path, output_path: Path):
   for j in range(0, len(files)):
     filename = files[j]
     if filename.endswith("h5"):
-      model_files.append(filename)
+      model_files.append(str(model_location.joinpath(filename)))
     
-  for j in tqdm(range(0, len(model_files)), desc = "[INFO] Test - Testing Progress", unit="models"):
-    minibatch.append(model_files[j])
-    # If a minibatch has been filled OR we're at the end of files. 
-    if len(minibatch) == _minibatch_size or j == len(model_files)-1:
-      try:
-        print("[INFO] Test - Processing minibatch: " + str(minibatch))
-        ret_dict = {}
-        queue = multiprocessing.Queue()
-        queue.put(ret_dict)
+  partial_func = partial(test_model_worker, X_test=X_test, Y_test = Y_test)
+  job = Pool(_num_processes).imap(partial_func, model_files)
+  job_results = list(tqdm(job, desc = "[INFO] Test - Testing Progress", unit="models", total=len(model_files)))
 
-        minibatch_processes = {}
-
-        for i in range(0, len(minibatch)):
-          file = minibatch[i]
-          print("[INFO] Test - Creating new subprocess for model " + str(file) + ".")
-          
-          # Execute test as a separate process. Use a queue to
-          # obtain results. 
-          p = multiprocessing.Process(target=test_model_worker, 
-                                      args=(queue, str(model_location.joinpath(file)), 
-                                      X_test, Y_test, "mse" + str(i)))
-          minibatch_processes[i] = (p, file)
-
-        # After all of the processes have been created. Kick off in parallel.
-        for item in minibatch_processes:
-          tuple = minibatch_processes[item]
-          print("\n\n[INFO] Test - Executing new process for model " + tuple[1] + ".\n")
-          tuple[0].start()
-
-        # Now wait for all of them.
-        for p in minibatch_processes:
-          tuple[0].join()
-        print("\n[INFO] Test - Waiting for queue results...")
-        ret_dict_result = queue.get()
-        print("\n[INFO] Test - Processes complete; results:")
-        print(ret_dict_result) 
-        print("")
-        for item in ret_dict_result:
-          item_identifier = int(item.replace("mse",""))
-          if item_identifier in minibatch_processes:
-            filename = minibatch_processes[int(item.replace("mse",""))][1]
-            mse = ret_dict_result[item]
-          
-            if mse is None:
-              print("[WARN] Test - Received empty mse!")
-              chain_test_results[filename_uid] = "00.00000000 - " + str(filename) + " TEST FAILED!\n"
-              chain_test_results_mse_map[-1] = filename_uid
-            else:
-              chain_test_results[filename_uid] = "%.8f - " % (mse) + str(filename) + "\n"
-              # If a model of that exact mse exists already, append
-              # a tiny number to it until it's unique. 
-              if mse in chain_test_results_mse_map:
-                sorting_mse = None
-                while sorting_mse is None:
-                  mse = mse + 0.000000000000001 # mse has 15 decimal precision. Append by 1 to break ties.
-                  if mse not in chain_test_results_mse_map:
-                    sorting_mse = mse
-                chain_test_results_mse_map[sorting_mse] = filename_uid
-              else:
-                chain_test_results_mse_map[mse] = filename_uid
-            
-            filename_uid = filename_uid + 1
-          
-        print("\n[INFO] Test - Minibatch: " + str(minibatch) + " processing complete.\n")
-      except Exception as e:
-        # Use a try/except so that we still write the remaining stuff 
-        # to file in case of a failure or the user cancels the rest.
-        print("\n\n[ERROR] Test - !!!! Failed to process model " + str(filename) + "! Exception:")
-        print(e)
-        print("\n")
-      minibatch = []
-
+  for result in job_results:
+    filename = Path(result[0]).name
+    mse = result[1]
+  
+    if mse is None:
+      print("[WARN] Test - Received empty mse!")
+      chain_test_results[filename_uid] = "00.00000000 - " + str(filename) + " TEST FAILED!\n"
+      chain_test_results_mse_map[-1] = filename_uid
+    else:
+      chain_test_results[filename_uid] = "%.8f - " % (mse) + str(filename) + "\n"
+      # If a model of that exact mse exists already, append
+      # a tiny number to it until it's unique. 
+      if mse in chain_test_results_mse_map:
+        sorting_mse = None
+        while sorting_mse is None:
+          mse = mse + 0.000000000000001 # mse has 15 decimal precision. Append by 1 to break ties.
+          if mse not in chain_test_results_mse_map:
+            sorting_mse = mse
+        chain_test_results_mse_map[sorting_mse] = filename_uid
+      else:
+        chain_test_results_mse_map[mse] = filename_uid
+    
+    filename_uid = filename_uid + 1
+  
   if(filename_uid == 0):
     print("[WARNING] Test - No models found at location \"%s\". Please specify another location with an argument (example: python test_model_chain.py ./model_checkpoints) or move/copy the model(s) accordingly." 
       % model_location)
@@ -139,13 +100,11 @@ def test_models(model_location:Path, clean_data: Path, output_path: Path):
 # memory of the GPU and not freak out when we train another
 # right after. If the GPU is disabled, this still allows the 
 # memory to be handled properly. 
-def test_model_worker(queue, model_path, X_test, Y_test, mse_dict_name = "mse"):
-
+def test_model_worker(model_path, X_test, Y_test):
   # Allow tensorflow growth during testing, so as to allow for 
   # multiprocessing to happen. 
-  #config = tf.compat.v1.ConfigProto()
-  #config.gpu_options.allow_growth=True
-  #_ = tf.compat.v1.Session(config=config)
+  gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+  tf.config.experimental.set_memory_growth(gpu_devices[0], True)
 
   if _use_gpu is False:
     # Expliclty stop the GPU from being utilized. Use this option
@@ -161,11 +120,7 @@ def test_model_worker(queue, model_path, X_test, Y_test, mse_dict_name = "mse"):
   loss, mse = model.evaluate(X_test, Y_test)
   print("[INFO] Test - Dev set MSE is: ", mse) 
 
-  time.sleep(5)
-
-  ret_dict = queue.get()
-  ret_dict[mse_dict_name] = mse
-  queue.put(ret_dict)
+  return model_path, mse
   
 def write_results(chain_test_results, chain_test_results_mse_map, output_path):
   try:
@@ -244,8 +199,8 @@ def graph_history(filename, chain_test_results, chain_test_results_mse_map):
 
       result_string_split = string_split_apos[1].split("_")
       epoch = int(result_string_split[3].split(".h")[0].strip())
-      val_mse = float(result_string_split[2].strip())
-      train_mse = float(result_string_split[1].strip())
+      val_mse = float(result_string_split[1].strip())
+      train_mse = float(result_string_split[2].strip())
       
       indices.append(epoch)
       test_mses.append(test_mse)

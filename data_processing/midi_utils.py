@@ -329,79 +329,91 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
       assert squished_time >= 0.0 and squished_time <= 1.0
       return squished_time
 
+    def control_boolean(value) -> bool:
+      """
+      Given a pedal value between 0 and 127, flatten to 0 or 1 by
+      splitting the range equally. We do lose "natural" pedal operation
+      by doing this, but in turn, we make the problem FAR easier for the
+      model to learn. 
+
+      In the future, this can be experimented with, perhaps increasing
+      the number of buckets from 2 (ex) 4 buckets, going from boolean to
+      category values).
+      """
+      if value < 64:
+        return 0
+      else:
+        return 1
+
     controls_vector = []
     if len(control_changes) <= p:
       # 1 & 2) Pad up to p if necessary.
       for item in control_changes:
-        controls_vector.append(item[0]) # value
+        value = control_boolean(item[0])
+        controls_vector.append(value) # value
         controls_vector.append(squish_time(item[1])) # time
-        last_value = item[0]
+        last_value = value
       # Pad the remainder (if necessary) 
       for _ in range(0, (p - len(control_changes))):
         controls_vector.append(last_value)
         controls_vector.append(0)
     else:
-      # 3) Sample p equidistant values. 
+      # 3) Sample p values. 
       assert p >= 2
-      # Always take the first control change.
-      controls_vector.append(control_changes[0][0])
-      controls_vector.append(squish_time(control_changes[0][1]))
 
       # Sample from the pool of control changes between the first and
       # the last. Progressively pluck from the maxes and the mins - 
       # the most important of the changes. 
-      if p > 2:
-        # Create a dict keyed by control value, valued by time AND
-        # the original index of the controls dict. 
-        controls_dict = {}
-        for i in range(1, len(control_changes) - 1):
-          value = int(control_changes[i][0])
-          while value in controls_dict:
-            # For the sake of sorting, avoid issue of duplicates by 
-            # marginally increasing the value.
-            value += 0.000001
-          controls_dict[value] = (control_changes[i][1], i)
+      # Create a dict keyed by control value, valued by time AND
+      # the original index of the controls dict. 
+      controls_dict = {}
+      for i in range(0, len(control_changes)):
+        value = int(control_changes[i][0])
+        while value in controls_dict:
+          # For the sake of sorting, avoid issue of duplicates by 
+          # marginally increasing the value.
+          value += 0.000001
+        controls_dict[value] = (control_changes[i][1], i)
 
-        # Sort the dict in order of smallest to largest control value. 
-        # Pluck the maxes and mins until we run out of space. 
-        sorted_controls_dict = dict(sorted(controls_dict.items(), key=lambda item: item[0]))
-        items_needed = p - 2
-        items_max = items_needed // 2
-        items_min = items_needed - items_max
-        assert items_min + items_max == items_needed
-        sorted_controls_list = list(sorted_controls_dict)
-        items_max_list = []
-        items_min_list = []
-        for key in sorted_controls_list[0:items_max]:
-          value = sorted_controls_dict[key]
-          items_max_list.append((key, value))
-        for key in list(reversed(sorted_controls_list))[0:items_min]:
-          value = sorted_controls_dict[key]
-          items_min_list.append((key, value))
-        assert len(items_max_list) + len(items_min_list) == p - 2
+      # Sort the dict in order of smallest to largest control value. 
+      # Pluck the maxes and mins until we run out of space. 
+      sorted_controls_dict = dict(sorted(controls_dict.items(), key=lambda item: item[0]))
+      items_needed = p
+      items_max = items_needed // 2
+      items_min = items_needed - items_max
+      assert items_min + items_max == items_needed
+      sorted_controls_list = list(sorted_controls_dict)
+      items_max_list = []
+      items_min_list = []
+      for key in sorted_controls_list[0:items_max]:
+        value = sorted_controls_dict[key]
+        items_max_list.append((key, value))
+      for key in list(reversed(sorted_controls_list))[0:items_min]:
+        value = sorted_controls_dict[key]
+        items_min_list.append((key, value))
+      assert len(items_max_list) + len(items_min_list) == p 
 
-        # Now we need to make sure we add these back in chronologically,
-        # otherwise we'll screw everything up. TODO: This is clumsy.
-        added_items = 0
-        for i in range(1, len(control_changes) - 1):
-          for item in items_max_list:
-            if item[1][1] == i:
-              controls_vector.append(round(item[0])) # Remove any sorting key offsets.
-              controls_vector.append(squish_time(item[1][0]))
-              added_items += 1
-              continue
-          for item in items_min_list:
-            if item[1][1] == i:
-              controls_vector.append(round(item[0])) # Remove any sorting key offsets.
-              controls_vector.append(squish_time(item[1][0]))
-              added_items += 1
-        assert added_items == p -2
+      # Now we need to make sure we add these back in chronologically,
+      # otherwise we'll screw everything up. TODO: This is clumsy.
+      added_items = 0
+      for i in range(0, len(control_changes)):
+        for item in items_max_list:
+          if item[1][1] == i:
+            value = control_boolean(round(item[0])) # Remove any sorting key offsets.
+            controls_vector.append(value)
+            controls_vector.append(squish_time(item[1][0]))
+            last_value = round(value)
+            added_items += 1
+            continue
+        for item in items_min_list:
+          if item[1][1] == i:
+            value = control_boolean(round(item[0])) # Remove any sorting key offsets.
+            controls_vector.append(value)
+            controls_vector.append(squish_time(item[1][0]))
+            last_value = round(value)
+            added_items += 1
+      assert added_items == p
 
-      # Always add the final control change. 
-      controls_vector.append(control_changes[-1][0])
-      controls_vector.append(squish_time(control_changes[-1][1]))
-      last_value = control_changes[-1][0]
-      
     assert len(controls_vector) == p*2
     return controls_vector, last_value
 
@@ -419,9 +431,9 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
   # For each note that we read, add control change information between
   # when it is played and when the next note (or end of song) occurs.
   # Retain the last values and feed this in for empty values. 
-  last_64 = 127 # 127 is fully off. 
-  last_66 = 127
-  last_67 = 127
+  last_64 = 1 # 1 is fully off (squished)
+  #last_66 = 127
+  #last_67 = 127
   for i in range(0, len(note_msgs)):
     note_index, sol_velocity = note_msgs[i][0], note_msgs[i][1]
 
@@ -438,7 +450,7 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
     if note_index == next_note_index:
       # Edge case of the first note being the first message. Fill with
       # p empty controls. 
-      new_row += generate_x_empty_controls(p_granularity_total, 127)
+      new_row += generate_x_empty_controls(p_granularity_total, 1)
     else:
       # For the time of controls, we cannot use the ACTUAL time,
       # as trying predict the actual time will lead to chaos when
@@ -449,20 +461,20 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
 
       # Get all of the controls between this note and the next. 
       control_64 = [] # Sustain
-      control_66 = [] # Sostenuto 
-      control_67 = [] # Soft
+      #control_66 = [] # Sostenuto 
+      #control_67 = [] # Soft
       num_changes = 0
       for j in range(note_index+1, next_note_index):
         msg = track[j]
-        if msg.type == "control_change":
+        if msg.type == "control_change" and msg.control != 66 and msg.control != 67:
           value = msg.value
           time = msg.time
           if msg.control == 64:
             control_64.append((value, total_time_to_next_note + time))
-          elif msg.control == 66:
-            control_66.append((value, total_time_to_next_note + time))
-          elif msg.control == 67:
-            control_67.append((value, total_time_to_next_note + time))
+          #elif msg.control == 66:
+            #control_66.append((value, total_time_to_next_note + time))
+          #elif msg.control == 67:
+            #control_67.append((value, total_time_to_next_note + time))
           else:
             print("[ERROR] Midi Utils - Encountered unknown control %d!" % msg.control)
             assert False
@@ -477,11 +489,11 @@ def generate_sol_dataframe(midi: MidiFile, data: pd.DataFrame,
       # Now we have all the control changes. We have a few options here.
       # For each p (64, 66, and 67), average or pad if necessary.
       changes_64, last_64 = average_pad_control_changes(control_64, p_granularity_64, total_time_to_next_note, last_64)
-      changes_66, last_66 = average_pad_control_changes(control_66, p_granularity_66, total_time_to_next_note, last_66)
-      changes_67, last_67 = average_pad_control_changes(control_67, p_granularity_67, total_time_to_next_note, last_67)
+      #changes_66, last_66 = average_pad_control_changes(control_66, p_granularity_66, total_time_to_next_note, last_66)
+      #changes_67, last_67 = average_pad_control_changes(control_67, p_granularity_67, total_time_to_next_note, last_67)
       new_row += changes_64
-      new_row += changes_66
-      new_row += changes_67
+      #new_row += changes_66
+      #new_row += changes_67
 
     # At the end, do some sanity checks. 
     assert len(new_row) == ((p_granularity_total*2) + 1)

@@ -20,8 +20,8 @@ repeat_duration = 4
 
 print_lines_amount = 30000
 
-demo_duration_natural = 30
-demo_duration_artificial = 30
+demo_duration_natural = 30000
+demo_duration_artificial = 30000
 lines_to_output = 150
 
 if __name__ == "__main__":

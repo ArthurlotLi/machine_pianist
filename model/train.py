@@ -6,7 +6,7 @@
 from model.hparams import *
 from model.model import machine_pianist, get_callbacks
 from model.dataset_utils import load_datasets, generate_song_tensors
-from model.load_save import load_existing_model
+from model.load_save import load_existing_model, save_scaler
 from data_processing.data_params import *
 
 from pathlib import Path
@@ -22,7 +22,13 @@ def train_machine_pianist(clean_data: Path, model_id: str,
   print("[INFO] Train - Beginning Machine Pianist training session for \"%s\"." % model_id)
   # Load the dataset. 
   train_df = load_datasets(clean_data, load_train= True)[0]
-  X, Y = _extract_X_Y(train_df)
+  X, Y, scaler_X, scaler_Y = _extract_X_Y(train_df)
+
+  # Save the column transformers for inference. 
+  save_scaler(location = saved_models, filename = model_id + "_scaler_X.bin", 
+              scaler = scaler_X)
+  save_scaler(location = saved_models, filename = model_id + "_scaler_Y.bin", 
+              scaler = scaler_Y)
 
   # Attempt to load an existing model if it exists. Expects the 
   # warm-start model to have the name specified in hparams.
@@ -54,9 +60,9 @@ def _extract_X_Y(train_df):
 
   # Convert these dataframes into matrices, separated by song. Then
   # combine the matrices to create tensors. 
-  X, Y = generate_song_tensors(songs_df = train_df, solutions=True)
-
-  return X, Y
+  X, Y, scaler_X, scaler_Y = generate_song_tensors(songs_df = train_df, solutions=True)
+  
+  return X, Y, scaler_X, scaler_Y
 
 def _execute_train(model, callbacks, X, Y):
   """

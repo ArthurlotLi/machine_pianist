@@ -6,12 +6,16 @@
 # qualities (hopefully)
 
 from data_processing.data_params import *
+from model.hparams import *
 
+from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
-from mido import MidiTrack, Message, tick2second, second2tick
+from mido import MidiTrack, Message, tick2second, second2tick, merge_tracks
 import numpy as np
+import pandas as pd
 
-def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array):
+def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
+                         scaler_X: StandardScaler, scaler_Y: StandardScaler):
   """
   Expects a list of tuples for preprocessed songs - (song_id, midi).
   Also expects the output of the model, which is a tensor of shape
@@ -22,10 +26,18 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array):
   """
   assert len(preprocessed_songs) == Y_hat.shape[0]
 
+  # Reverse scaling of the provided X so we can use it. 
+  X_orig_shape = X.shape
+  X = scaler_X.inverse_transform(pd.DataFrame(X.reshape(-1, len(data_input_cols)), columns=data_input_cols))
+  X = X.reshape(X_orig_shape)
+
   output_midis = []
   for a in tqdm(range(0, len(preprocessed_songs)), desc="[INFO] Postprocess - Applying performance"):
     midi = preprocessed_songs[a][1]
     midi_predictions = Y_hat[a]
+
+    # Before anything else, reverse scaling.
+    midi_predictions = scaler_Y.inverse_transform(pd.DataFrame(midi_predictions, columns=data_solution_cols))
 
     # Only one track allowed.
     assert len(midi.tracks) == 1
@@ -60,12 +72,12 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array):
       current_index, control_changes = process_controls(control_changes, current_index, 
                                                         prediction_row,
                                                         p_granularity_64, 64)
-      current_index, control_changes = process_controls(control_changes, current_index, 
-                                                        prediction_row,
-                                                        p_granularity_66, 66)
-      current_index, control_changes = process_controls(control_changes, current_index, 
-                                                        prediction_row,
-                                                        p_granularity_67, 67)
+      #current_index, control_changes = process_controls(control_changes, current_index, 
+                                                        #prediction_row,
+                                                        #p_granularity_66, 66)
+      #current_index, control_changes = process_controls(control_changes, current_index, 
+                                                        #prediction_row,
+                                                        #p_granularity_67, 67)
       assert current_index == len(prediction_row)- 1
 
       # Now we need to make this chronological, regardless of which
@@ -186,7 +198,11 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array):
 
     # The output_track has now been fully created. Overwrite the
     # original midi's track. And we're dooooone! 
-    midi.tracks[0] = output_track
+    # 
+    # Note: use merge_tracks with a single track because this function
+    # deliberately fixes any end of track messages and wraps things
+    # up. 
+    midi.tracks[0] = merge_tracks([output_track])
 
     output_midis.append(midi)
   

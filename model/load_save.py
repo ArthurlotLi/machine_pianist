@@ -3,9 +3,11 @@
 #
 # Loading/saving a model. 
 
+from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.models import load_model
 from tensorflow.keras import Model
 from pathlib import Path
+from joblib import dump, load
 
 def load_existing_model(saved_models:Path, model_id: str, filename:str):
   """
@@ -35,3 +37,21 @@ def save_model(saved_models:Path, model_id: str, model: Model):
   """
   # TODO: Implement if necessary. 
   pass
+
+
+def save_scaler(location: Path, filename: str, scaler: StandardScaler):
+  """
+  Given a standard scaler and the path information, save it.
+  This will be used for inference. 
+  """
+  scaler_path = location.joinpath(filename)
+  print("[INFO] Load Save - Saving scalar to: %s" % scaler_path)
+  dump(scaler, str(scaler_path), compress = True)
+
+def load_scaler(location: Path):
+  """
+  Load a standard scaler from the location for inference.
+  """
+  print("[INFO] Load Save - Loading standard scalar: %s" % location)
+  scaler = load(str(location))
+  return scaler
