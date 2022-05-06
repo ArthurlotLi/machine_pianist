@@ -63,7 +63,8 @@ class MachinePianist:
 
     # Now let's make sure to pad every single song here. 
     X = generate_song_tensors(songs_list=preprocessed_dfs, solutions=False, 
-                              scaler_X=self._scaler_X, scaler_Y=self._scaler_Y)
+                              scaler_X=self._scaler_X, scaler_Y=self._scaler_Y,
+                              n_processes=1)
 
     # We now have a complete X dataframe. Conduct inference. 
     print("[INFO] Machine Pianist - Performing songs...")
@@ -91,17 +92,17 @@ if __name__ == "__main__":
 
   midi_files = [
     #"../kotakee_companion/speech_server/piano_player/now_playing/the roost.mid",
-    "../kotakee_companion/speech_server/piano_player/now_playing/velvet room.mid",
+    #"../kotakee_companion/speech_server/piano_player/now_playing/velvet room.mid",
     #"./midi_test/toss a coin to your witcher.mid",
     #"./midi_test/bang.mid",
     #"./midi_test/model1_castle.mid",
-    #"./midi_test/seven nation army.mid",
+    "./midi_test/seven nation army.mid",
     #"./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid",
     #"./midi_test/MIDI-Unprocessed_043_PIANO043_MID--AUDIO-split_07-06-17_Piano-e_1-03_wav--1.midi",
     #"./midi_test/MIDI-Unprocessed_Chamber3_MID--AUDIO_10_R3_2018_wav--1.midi"
   ]
 
-  model = "model5"
+  model = "model6"
   model_path = Path("./production_models/%s/machine_pianist.h5" % model)
   scaler_X_path = Path("./saved_models/%s_scaler_X.bin" % model)
   scaler_Y_path = Path("./saved_models/%s_scaler_Y.bin" % model)

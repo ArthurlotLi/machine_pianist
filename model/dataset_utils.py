@@ -51,7 +51,7 @@ def load_datasets(clean_data: Path,
   return loaded_datasets
 
 def generate_song_tensors(songs_df = None, songs_list = None, solutions = True,
-                          scaler_X = None, scaler_Y = None):
+                          scaler_X = None, scaler_Y = None, n_processes = _num_processes):
   """
   Given a dataframe(s), generate tensors for model usage (train/test) by 
   grouping songs and padding them to the maximum number of notes.
@@ -62,6 +62,9 @@ def generate_song_tensors(songs_df = None, songs_list = None, solutions = True,
   # ONE of the two options must be None, the other must not.
   assert songs_df is not None or songs_list is not None
   assert songs_df is None or songs_list is None
+
+  if n_processes < 2:
+    _enable_multiprocessing = False
 
   # The scalers must be provided if solutions are disabled. 
   assert (scaler_X is not None and scaler_Y is not None) or solutions is True
@@ -78,7 +81,7 @@ def generate_song_tensors(songs_df = None, songs_list = None, solutions = True,
   # multiprocessing.
   if _enable_multiprocessing:
     func = partial(process_song_df, solutions=solutions)
-    job = Pool(_num_processes).imap(func, jobs)
+    job = Pool(n_processes).imap(func, jobs)
     job_results = list(tqdm(job, desc="[INFO] Dataset Utils - Padding Songs", total=len(jobs)))
   else:
     job_results = []
@@ -101,7 +104,7 @@ def generate_song_tensors(songs_df = None, songs_list = None, solutions = True,
         X = result
         padded_songs_X.append(X)
     
-  print("[INFO] Dataset Utils - Total dropped songs: %d out of %d." % (dropped_songs, len(songs_list)))
+  print("[INFO] Dataset Utils - Total dropped songs: %d out of %d." % (dropped_songs, len(jobs)))
 
   # Apply standard scalers here - fit new ones if they were not provided
   # (only during training preprocessing).
