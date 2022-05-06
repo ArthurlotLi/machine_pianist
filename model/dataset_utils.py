@@ -13,6 +13,12 @@ from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
+from functools import partial
+from multiprocessing import Pool
+
+# Disable for debugging
+_enable_multiprocessing = True
+_num_processes = 10
 
 def load_datasets(clean_data: Path,
                   load_train: Optional[bool] = False, 
@@ -65,33 +71,37 @@ def generate_song_tensors(songs_df = None, songs_list = None, solutions = True,
   else:
     songs_list = enumerate(songs_list)
 
+  jobs = []
+  for _, song_df in songs_list: jobs.append(song_df)
+
+  # Pad all songs in a standardized manner. Preferably with
+  # multiprocessing.
+  if _enable_multiprocessing:
+    func = partial(process_song_df, solutions=solutions)
+    job = Pool(_num_processes).imap(func, jobs)
+    job_results = list(tqdm(job, desc="[INFO] Dataset Utils - Padding Songs", total=len(jobs)))
+  else:
+    job_results = []
+    for song_df in tqdm(jobs, desc="[INFO] Dataset Utils - Padding Songs (MULTIPROCESSING DISABLED)", total=len(jobs)):
+      job_results.append(process_song_df(song_df=song_df, solutions=solutions))
+
   padded_songs_X = []
   padded_songs_Y = []
-
   dropped_songs = 0
-  total_songs = 0
-  for i, song_df in tqdm(songs_list, desc="[INFO] Dataset Utils - Padding Songs"):
-    total_songs += 1
-    padded_df = pad_song_note_off(song_df, maximum_song_length, solutions)
-    if padded_df is None:
+  for result in job_results:
+    if result is None:
       dropped_songs += 1
     else:
-      padded_df = padded_df.loc[:, ~padded_df.columns.str.contains('^Unnamed')]
-      # Split into X and Y if solutions are present.
       if solutions is True:
-        Y = padded_df.loc[:,data_solution_cols]
-        # Drop the solution column + unnamed columns.
-        X = padded_df.drop(labels=data_solution_cols, axis=1)
-        # Temp column to split grouped results during scaling.
-        X["temp"] = i
+        X = result[0]
+        Y = result[1]
         padded_songs_X.append(X)
         padded_songs_Y.append(Y)
       else:
-        # Temp column to split grouped results during scaling.
-        padded_df["temp"] = i
-        padded_songs_X.append(padded_df)
-
-  print("[INFO] Dataset Utils - Total dropped songs: %d out of %d." % (dropped_songs, total_songs))
+        X = result
+        padded_songs_X.append(X)
+    
+  print("[INFO] Dataset Utils - Total dropped songs: %d out of %d." % (dropped_songs, len(songs_list)))
 
   # Apply standard scalers here - fit new ones if they were not provided
   # (only during training preprocessing).
@@ -153,14 +163,37 @@ def generate_song_tensors(songs_df = None, songs_list = None, solutions = True,
     print("[INFO] Dataset Utils - Generated tensor shape: X=%s" % (str(X_final.shape)))
     return X_final
 
-def pad_song_note_off(song_df, max_notes, solutions=True):
+def process_song_df(song_df, solutions):
+  """
+  Multiprocessing worker for each song. Returns X, Y if solutions,
+  otherwise just returns X. 
+  """
+  padded_df = pad_song_note_off(song_df, solutions)
+  if padded_df is None:
+    return None
+  else:
+    padded_df = padded_df.loc[:, ~padded_df.columns.str.contains('^Unnamed')]
+    # Split into X and Y if solutions are present.
+    if solutions is True:
+      Y = padded_df.loc[:,data_solution_cols]
+      # Drop the solution column + unnamed columns.
+      X = padded_df.drop(labels=data_solution_cols, axis=1)
+      # Temp column to split grouped results during scaling.
+      X["temp"] = i
+      return X, Y
+    else:
+      # Temp column to split grouped results during scaling.
+      padded_df["temp"] = i
+      return padded_df
+
+def pad_song_note_off(song_df, solutions):
   """
   Given a dataframe, assert the length is less than the max notes. If
   so, then pad the length up to the max notes. 
   """
-  if song_df.shape[0] > max_notes:
+  if song_df.shape[0] > maximum_song_length:
     #print("\n[WARNING] Dataset Utils - Received a dataset with illegal length %d (max: %d)! Dropping..."
-      #% (song_df.shape[0], max_notes))
+      #% (song_df.shape[0], maximum_song_length))
     return None
 
   # The dataframe MUST have the correct size depending on if solutions
@@ -178,7 +211,7 @@ def pad_song_note_off(song_df, max_notes, solutions=True):
   song_uid = int(first_row[data_uid_col])
 
   # We've made sure it's of a good shape. Pad it. 
-  padding_necessary = max_notes - song_df.shape[0]
+  padding_necessary = maximum_song_length - song_df.shape[0]
 
   if solutions is False:
     new_rows = [60, 0, 0, song_uid]
@@ -203,8 +236,8 @@ def pad_song_note_off(song_df, max_notes, solutions=True):
   # At the end, we need to ensure the song is a matrix of the
   # appropriate shape. 
   if solutions is False:
-    assert song_df.shape == (max_notes, 3)
+    assert song_df.shape == (maximum_song_length, 3)
   else:
-    assert song_df.shape == (max_notes, 3 + len(data_solution_cols))
+    assert song_df.shape == (maximum_song_length, 3 + len(data_solution_cols))
   
   return song_df
