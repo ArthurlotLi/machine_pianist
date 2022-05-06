@@ -61,7 +61,7 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
           time_percentage = prediction_row[current_index]
           if round(value) != 0 or round(time_percentage) != 0:
             if value >0.7: value = 127
-            else: value = 0
+            else: value = 1
             control_changes[time_percentage] = (control_num, value)
         return current_index, control_changes
       
