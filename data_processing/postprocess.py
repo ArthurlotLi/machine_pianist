@@ -59,12 +59,43 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
           value = prediction_row[current_index]
           current_index += 1
           time_percentage = prediction_row[current_index]
-          if round(value) != 0 or round(time_percentage) != 0:
-            if value >0.7: value = 127
-            else: value = 1
-            control_changes[time_percentage] = (control_num, value)
+
+          clamp_values = False
+
+          if clamp_values:
+            # Allow the model to specify control changes to a certain
+            # degree, without allowing it to fully control changes. 
+            # Use the "confidence" of the model to output a pedal 
+            # position. 
+            """
+            sorted_control_cutoffs = {
+              0.65: 0,
+              0.7: 85,
+              0.75: 92,
+              0.8: 95,
+              0.85: 102,
+              0.9: 108,
+              0.95: 117,
+            }
+            """
+            sorted_control_cutoffs = {
+              0.55: 0,
+            }
+
+            cutoff_applied = False
+            for cutoff in sorted_control_cutoffs:
+              if value <= cutoff:
+                value = sorted_control_cutoffs[cutoff]
+                cutoff_applied = True
+                break
+            if cutoff_applied is False:
+              value = 127
+          else:
+            value = max(min(round(127*value), 127), 0)
+
+          control_changes[time_percentage] = (control_num, value)
         return current_index, control_changes
-      
+
       # Process the control change data. Control change data comes
       # in twos - (value, time_percentage). The latter is a value
       # that indicates when the control change happens between the
