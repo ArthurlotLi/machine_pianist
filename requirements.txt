@@ -6,3 +6,5 @@ pandas==1.1.5
 
 tensorflow==2.6.0
 keras==2.6.0
+
+dill==0.3.4
