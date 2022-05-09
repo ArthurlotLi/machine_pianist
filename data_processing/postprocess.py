@@ -13,6 +13,12 @@ from tqdm import tqdm
 from mido import MidiTrack, Message, tick2second, second2tick, merge_tracks
 import numpy as np
 import pandas as pd
+import statistics
+
+_average_64_control = True
+# How many standard deviations up or down to add bias.
+# Negative or positive, decimal. 
+_average_64_control_bias_stds = -0.53
 
 def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
                          scaler_X: StandardScaler, scaler_Y: StandardScaler):
@@ -42,13 +48,14 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
     # Only one track allowed.
     assert len(midi.tracks) == 1
 
-    def control_solutions(prediction_row):
+    def control_solutions(prediction_row, avg_64_values):
       """
       Helper function for controls. Extracts ALL control data from a
       prediction row. 
       """
       def process_controls(control_changes, current_index, 
-                            prediction_row, p, control_num):
+                            prediction_row, p, control_num, 
+                            avg_64_values):
         """
         Helper function for controls. For each control (pedal),
         extract the value and time percentage. Drop all values
@@ -60,6 +67,10 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
           current_index += 1
           time_percentage = prediction_row[current_index]
 
+          if _average_64_control is True:
+            avg_64_values.append(float(value))
+
+          """
           clamp_values = False
 
           if clamp_values:
@@ -67,7 +78,6 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
             # degree, without allowing it to fully control changes. 
             # Use the "confidence" of the model to output a pedal 
             # position. 
-            """
             sorted_control_cutoffs = {
               0.65: 0,
               0.7: 85,
@@ -77,9 +87,8 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
               0.9: 108,
               0.95: 117,
             }
-            """
             sorted_control_cutoffs = {
-              0.55: 0,
+              0.63: 0,
             }
 
             cutoff_applied = False
@@ -91,10 +100,10 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
             if cutoff_applied is False:
               value = 127
           else:
-            value = max(min(round(127*value), 127), 0)
+          """
 
           control_changes[time_percentage] = (control_num, value)
-        return current_index, control_changes
+        return current_index, control_changes, avg_64_values
 
       # Process the control change data. Control change data comes
       # in twos - (value, time_percentage). The latter is a value
@@ -102,9 +111,10 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
       # subject note and the next note. 
       control_changes = {} # Dict keyed by time percentage. 
       current_index = 0
-      current_index, control_changes = process_controls(control_changes, current_index, 
+      current_index, control_changes, avg_64_values = process_controls(control_changes, current_index, 
                                                         prediction_row,
-                                                        p_granularity_64, 64)
+                                                        p_granularity_64, 64, 
+                                                        avg_64_values)
       #current_index, control_changes = process_controls(control_changes, current_index, 
                                                         #prediction_row,
                                                         #p_granularity_66, 66)
@@ -116,7 +126,7 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
       # Now we need to make this chronological, regardless of which
       # control. 
       sol_controls = dict(sorted(control_changes.items(), key=lambda item: item[0]))
-      return sol_controls
+      return sol_controls, avg_64_values
 
     # Ignore the first note of the predictions, as this is the 
     # padding note we always add in midi_utils. Ultimately, 
@@ -126,8 +136,14 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
     predictions_index = 1
     notes = []
 
+    # Get the average control value (Only for 64 right now). This
+    # is a bit of a bootstrap method to ensure consistent sustain pedal
+    # usage, as model confidence can vary quite a bit.
+    avg_64_values = []
+
     # Add first note control information.
-    sol_controls = control_solutions(midi_predictions[0])
+    sol_controls, avg_64_values = control_solutions(
+      midi_predictions[0], avg_64_values)
     notes.append((60, 0, 0, sol_controls))
 
     absolute_time_since_start = 0
@@ -149,7 +165,8 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
           sol_velocity = 0
 
         # Parse control change information.
-        sol_controls = control_solutions(prediction_row)
+        sol_controls, avg_64_values = control_solutions(
+          prediction_row, avg_64_values)
 
         notes.append((msg.note, absolute_time_since_start - absolute_time_last_msg, sol_velocity, sol_controls))
         absolute_time_last_msg = absolute_time_since_start
@@ -160,6 +177,14 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
     end_row = X[a][predictions_index]
     assert end_row[0] == 60 and end_row[2] == 0
     end_song_seconds = end_row[1]
+
+    # Finalize average information.
+    if _average_64_control is True:
+      # Get the mean.
+      avg_64_value = sum(avg_64_values) / len(avg_64_values)
+      # Get the std of the data and use that to apply a bias. 
+      std = statistics.pstdev(avg_64_values)
+      avg_64_value = max(avg_64_value + std*(_average_64_control_bias_stds), 0)
 
     # We have now filled out our notes list, ordered chronologically.
     # We now need to generate our output midi, which will have all
@@ -208,9 +233,15 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
         for time_percentage in controls:
           control_change = controls[time_percentage]
           control_num = control_change[0]
-          value = round(control_change[1])
-          value = min(value, 127)
-          value = max(value, 0)
+          value = control_change[1]
+          if _average_64_control is True:
+            # Apply the average. 
+            if value <= avg_64_value:
+              value = 0
+            else:
+              value = 127
+          else:
+            value = max(min(round(127*value), 127), 0)
 
           # Account for some odd numbers that might leak out of the
           # model.   

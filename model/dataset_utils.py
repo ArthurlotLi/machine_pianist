@@ -17,6 +17,7 @@ from functools import partial
 from multiprocessing import Pool
 
 # Disable for debugging
+# TODO: fix multiprocessing for train and test (with solutions = True)
 _enable_multiprocessing = True
 _num_processes = 10
 
@@ -62,6 +63,7 @@ def generate_song_tensors(songs_df = None, songs_list = None, solutions = True,
   # ONE of the two options must be None, the other must not.
   assert songs_df is not None or songs_list is not None
   assert songs_df is None or songs_list is None
+  global _enable_multiprocessing
 
   if n_processes < 2:
     _enable_multiprocessing = False
