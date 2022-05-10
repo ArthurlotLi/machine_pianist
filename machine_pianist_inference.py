@@ -98,7 +98,7 @@ if __name__ == "__main__":
     #"./midi_test/bang.mid",
     #"./midi_test/model1_castle.mid",
     #"./midi_test/seven nation army.mid",
-    "./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid",
+    #"./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid",
     #"./midi_test/MIDI-Unprocessed_043_PIANO043_MID--AUDIO-split_07-06-17_Piano-e_1-03_wav--1.midi",
     #"./midi_test/MIDI-Unprocessed_Chamber3_MID--AUDIO_10_R3_2018_wav--1.midi"
   ]
