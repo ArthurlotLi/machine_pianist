@@ -156,10 +156,11 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
 
       if msg.type == "note_on" or msg.type == "note_off":
         # Parse velocity information. 
+        prediction_row = midi_predictions[predictions_index]
+        
         if msg.type != "note_off" and msg.velocity != 0:
           # This is a note on. Ignore whatever the model predicts for
           # note off. 
-          prediction_row = midi_predictions[predictions_index]
           sol_velocity = abs(round(prediction_row[0]))
         else:
           sol_velocity = 0
