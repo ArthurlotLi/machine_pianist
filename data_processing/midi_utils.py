@@ -113,7 +113,13 @@ def harmonize_meta(midi: MidiFile):
   assert len(music_tempos) > 0
 
   # If the tempo matches what we need, no work is necessary. 
-  if len(music_tempos) == 1 and music_tempos[0][0] == music_set_tempo:
+  good_tempos = True
+  for tempo, _ in music_tempos:
+    if tempo != music_set_tempo:
+      good_tempos = False
+      break
+
+  if good_tempos is True:
     return midi
 
   print("[INFO] Midi Utils - Refactoring %d midi tempo(s): %s -> %d." % (len(music_tempos), str(music_tempos), music_set_tempo))

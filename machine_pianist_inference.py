@@ -92,8 +92,9 @@ if __name__ == "__main__":
 
   midi_files = [
     #"../kotakee_companion/speech_server/piano_player/now_playing/channel.mid",
-    "../kotakee_companion/speech_server/piano_player/now_playing/midna.mid",
+    #"../kotakee_companion/speech_server/piano_player/now_playing/midna.mid",
     #"../kotakee_companion/speech_server/piano_player/now_playing/velvet room.mid",
+    "./midi_test/model6 website.mid"
     #"./midi_test/toss a coin to your witcher.mid",
     #"./midi_test/bang.mid",
     #"./midi_test/model1_castle.mid",
