@@ -175,7 +175,7 @@ def pad_song_note_off(song_df, max_notes, solutions=True):
 
   # Grab the song_id. We assume the songid is uniform for all rows.
   first_row = song_df.head(1)
-  song_uid = int(first_row[data_uid_col])
+  song_uid = str(first_row[data_uid_col])
 
   # We've made sure it's of a good shape. Pad it. 
   padding_necessary = max_notes - song_df.shape[0]
