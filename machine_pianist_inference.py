@@ -55,7 +55,7 @@ class MachinePianist:
     preprocessed_dfs = []
     for i in range(0, len(midi_files)):
       midi = Path(midi_files[i])
-      midi, song_X = preprocess_midi(midi_file = midi, song_uid=i)
+      midi, song_X = preprocess_midi(midi_file = midi, song_uid=midi.name)
       preprocessed_songs.append((i, midi))
       preprocessed_dfs.append(song_X)
     

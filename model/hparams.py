@@ -8,7 +8,7 @@
 # Prevent tensorflow from automatically hogging the entire GPU. This
 # should only be enabled to view VRAM loads in real time, and disabled
 # during proper training. 
-allow_tf_growth = False
+allow_tf_growth = True
 allow_inference_tf_growth = True
 
 training_verbose = True
@@ -17,9 +17,9 @@ training_verbose = True
 saved_model_name = "machine_pianist.h5"
 
 # Learning Hyperparameters.
-learning_rate = 0.0002
+learning_rate = 0.0003
 epochs = 3000
-batch_size = 32 # TODO: Implement Tensorflow Dataset pipelines. 
+batch_size = 16 # TODO: Implement Tensorflow Dataset pipelines. 
 validation_split = 0.2
 
 # Our output layer is linear with a single output vector - thus
@@ -37,13 +37,13 @@ maximum_song_length = 25000
 # Expects (timesteps, feature).
 input_dim = (maximum_song_length,3) 
 gru_width = 128
-gru_depth = 2 # minimum of 1.
+gru_depth = 4 # minimum of 1.
 assert gru_depth >= 1
 fully_connected_width = 128
 
 # Additional Regularization.
 input_dropout = 0.8
-hidden_dropout = 0.5
+hidden_dropout = 0.8
 
 # Callbacks. 
 mcp_monitor = "mse"
