@@ -75,7 +75,86 @@ def midi_statistics(mid):
   for i, track in enumerate(mid.tracks):
     print('[INFO] Midi Player - Track {}: {} - Length: {}'.format(i, track.name, str(len(track))))
 
-def graph_velocities(mid):
+def graph_velocities_notes(mid):
+  """
+  Visualize the velocities AND notes of a midi file. Only one track 
+  is used. Mean to visualize the progression of the song alongside
+  the velocities predicted by the model. 
+  """
+  import matplotlib.pyplot as plt
+  graph_width_inches = 6
+  graph_height_inches = 4
+
+  assert len(mid.tracks) == 1
+
+  note_history = []
+  note_history_color = "grey"
+  velocity_history = []
+  velocity_history_color = (6/255, 104/255, 101/255)
+  #velocity_history_color = None
+  for j in range(0, len(mid.tracks[0])):
+    msg = mid.tracks[0][j]
+    if msg.type == "note_on":
+      note_history.append((j, msg.note))
+      velocity_history.append((j, msg.velocity))
+  
+  # Graph the history. 
+  fig = plt.figure(1)
+  fig.suptitle("Machine Pianist Velocities - [Night King]")
+  fig.set_size_inches(graph_width_inches,graph_height_inches)
+  plt.scatter(*zip(*note_history), color=note_history_color)
+  plt.scatter(*zip(*velocity_history), color=velocity_history_color)
+  #plt.scatter(*zip(*velocity_history, *note_history), color=["white", "black"])
+  plt.xlabel("MIDI Message")
+  plt.ylabel("Note Velocity/Note ID")
+  plt.legend(['Song Notes', 'Velocities'], loc="upper left")
+  plt.show()
+
+def graph_controls_notes(mid):
+  """
+  Visualize the velocities AND notes of a midi file AS WELL AS the 
+  control changes. Meant to demonstrate the entire picture of 
+  the performance data. 
+  """
+  import matplotlib.pyplot as plt
+  graph_width_inches = 6
+  graph_height_inches = 4
+
+  assert len(mid.tracks) == 1
+
+  note_history = []
+  note_history_color = "grey"
+  control_64_history = []
+  control_64_color = (143/255, 41/255, 10/255)
+  control_67_history = []
+  control_67_color = "purple"
+  for j in range(0, len(mid.tracks[0])):
+    msg = mid.tracks[0][j]
+    if msg.type == "note_on":
+      note_history.append((j, msg.note))
+    elif msg.type == "control_change":
+      control = msg.control 
+      if control == 64:
+        control_64_history.append((j, msg.value))
+      elif control == 67:
+        control_67_history.append((j, msg.value))
+  
+  # Graph the history. 
+  fig = plt.figure(1)
+  fig.suptitle("Machine Pianist Sustain Pedal - [Take Me to Church]")
+  fig.set_size_inches(graph_width_inches,graph_height_inches)
+  plt.scatter(*zip(*note_history), color=note_history_color)
+  if len(control_64_history) > 0:
+    plt.scatter(*zip(*control_64_history), color=control_64_color)
+  if len(control_67_history) > 0:
+    plt.scatter(*zip(*control_67_history), color=control_67_color)
+  #plt.scatter(*zip(*velocity_history, *note_history), color=["white", "black"])
+  plt.xlabel("MIDI Message")
+  plt.ylabel("Control Value/Note ID")
+  plt.legend(['Song Notes', 'Sustain Control (64)', 'Soft Control (67)'], loc="upper left")
+  plt.show()
+
+def graph_velocities_old(mid):
   """
   Visualize the velocities of a midi file. Only one track is used.
   Meant to demonstrate the behavior of human vs automatic Midi 
@@ -102,7 +181,7 @@ def graph_velocities(mid):
   plt.ylabel("Note Velocity")
   plt.show()
 
-def graph_velocities_notes(mid):
+def graph_velocities_notes_old(mid):
   """
   Visualize the velocities AND notes of a midi file. Only one track 
   is used. Mean to visualize the progression of the song alongside
@@ -136,7 +215,7 @@ def graph_velocities_notes(mid):
   plt.legend(['Song Notes', 'Velocities'], loc="upper left")
   plt.show()
 
-def graph_controls_notes(mid):
+def graph_controls_notes_old(mid):
   """
   Visualize the velocities AND notes of a midi file AS WELL AS the 
   control changes. Meant to demonstrate the entire picture of 
