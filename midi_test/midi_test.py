@@ -9,7 +9,8 @@ from utils.midi_player import PianoPlayer, print_first_x
 from mido import MidiFile
 _test_file = "./midi_test/temp_file"
 #_test_file = "./midi_test/MIDI-Unprocessed_043_PIANO043_MID--AUDIO-split_07-06-17_Piano-e_1-03_wav--1.midi"
-_test_file2 = "./midi_test/MIDI-Unprocessed_Chamber3_MID--AUDIO_10_R3_2018_wav--1.midi"
+#_test_file2 = "./midi_test/MIDI-Unprocessed_Chamber3_MID--AUDIO_10_R3_2018_wav--1.midi"
+_test_file2 = "../kotakee_companion/speech_server/piano_player/now_playing/midna.mid"
 _downloaded_file = "./midi_test/Online Version.mid"
 
 _spider_dance = "./midi_test/Undertale_-_Spider_Dance_-_Lattice.mid"

@@ -10,7 +10,7 @@ from model.hparams import *
 
 from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
-from mido import MidiTrack, Message, tick2second, second2tick, merge_tracks
+from mido import MidiTrack, Message, tick2second, second2tick, merge_tracks, UnknownMetaMessage
 import numpy as np
 import pandas as pd
 import statistics
@@ -156,10 +156,11 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
 
       if msg.type == "note_on" or msg.type == "note_off":
         # Parse velocity information. 
+        prediction_row = midi_predictions[predictions_index]
+        
         if msg.type != "note_off" and msg.velocity != 0:
           # This is a note on. Ignore whatever the model predicts for
           # note off. 
-          prediction_row = midi_predictions[predictions_index]
           sol_velocity = abs(round(prediction_row[0]))
         else:
           sol_velocity = 0
@@ -194,7 +195,7 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
     # of (control num, value).
     meta_msgs = []
     for msg in midi.tracks[0]:
-      if msg.is_meta and msg.type != "end_of_track":
+      if msg.is_meta and msg.type != "end_of_track" and not isinstance(msg, UnknownMetaMessage):
         # We force all meta messages to be 0. Since we harmonize all
         # tempos, this should have no effect. Ignore the end of track
         # message - we'll add that ourselves. 
