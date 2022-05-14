@@ -162,7 +162,7 @@ def pad_song_note_off(song_df, max_notes, solutions=True):
     #print("\n[WARNING] Dataset Utils - Received a dataset with illegal length %d (max: %d)! Dropping..."
       #% (song_df.shape[0], maximum_song_length))
     #return None
-    song_df = song_df.head(maximum_song_length)
+    song_df = song_df.head(max_notes)
 
   # The dataframe MUST have the correct size depending on if solutions
   # are provided. 
