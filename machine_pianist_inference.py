@@ -63,8 +63,7 @@ class MachinePianist:
 
     # Now let's make sure to pad every single song here. 
     X = generate_song_tensors(songs_list=preprocessed_dfs, solutions=False, 
-                              scaler_X=self._scaler_X, scaler_Y=self._scaler_Y,
-                              n_processes=1)
+                              scaler_X=self._scaler_X, scaler_Y=self._scaler_Y)
 
     # We now have a complete X dataframe. Conduct inference. 
     print("[INFO] Machine Pianist - Performing songs...")
