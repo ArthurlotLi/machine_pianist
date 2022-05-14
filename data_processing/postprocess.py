@@ -148,7 +148,7 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
 
     absolute_time_since_start = 0
     absolute_time_last_msg = 0
-    for i in range(len(midi.tracks[0])):
+    for i in range(min(len(midi.tracks[0]), maximum_song_length+1)):
       msg = midi.tracks[0][i]
 
       additional_seconds = tick2second(msg.time, midi.ticks_per_beat, music_set_tempo)
@@ -176,7 +176,8 @@ def generate_output_midi(preprocessed_songs: list, Y_hat: list, X: np.array,
     # Get the note after the very last note - this should be a dummy
     # note. We just care about the end song seconds value.
     end_row = X[a][predictions_index]
-    assert end_row[0] == 60 and end_row[2] == 0
+    # Removed assert in the case of a song that has been cut off by limit.
+    #assert end_row[0] == 60 and end_row[2] == 0
     end_song_seconds = end_row[1]
 
     # Finalize average information.

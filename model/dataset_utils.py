@@ -196,10 +196,12 @@ def pad_song_note_off(song_df, solutions):
   Given a dataframe, assert the length is less than the max notes. If
   so, then pad the length up to the max notes. 
   """
+  # Trunacate the song, don't just drop it outright. 
   if song_df.shape[0] > maximum_song_length:
     #print("\n[WARNING] Dataset Utils - Received a dataset with illegal length %d (max: %d)! Dropping..."
       #% (song_df.shape[0], maximum_song_length))
-    return None
+    #return None
+    song_df = song_df.head(maximum_song_length)
 
   # The dataframe MUST have the correct size depending on if solutions
   # are provided. 
@@ -246,3 +248,4 @@ def pad_song_note_off(song_df, solutions):
     assert song_df.shape == (maximum_song_length, 3 + len(data_solution_cols))
   
   return song_df
+  
