@@ -4,7 +4,6 @@
 # Preprocessing utilities working in the weeds with MIDI files to
 # extract required info. Keep all the really complex stuff here. 
 
-from torch import absolute
 from data_processing.data_params import *
 from utils.midi_player import *
 from utils.mergemid import *
