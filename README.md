@@ -9,7 +9,7 @@ Given an input MIDI file lacking such details, augment the file with key velocit
 
 To use the publically deployed model, please go to [Machine Pianist](http://machinepianist.com/).
 
-![Machine Pianist Website](https://i.imgur.com/iROo0i5.png "Machine Pianist Website")
+![Machine Pianist Website](https://i.imgur.com/LGDfsGb.png "Machine Pianist Website")
 
 ---
 
