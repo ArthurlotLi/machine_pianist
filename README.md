@@ -1,6 +1,6 @@
-# Machine Pianist
+# Machine Pianist - MIDI Performance Augmentation
 
-Natural MIDI Performance Augmentation. Using the power of machine learning to humanize automatic piano performances to the benefit of both composer and audience. Established under the hypothesis that the key "humanizing" components lacking in widely available online MIDI files are:
+Using the power of machine learning to humanize automatic piano performances to the benefit of both composer and audience. Established under the hypothesis that the key "humanizing" components lacking in widely available online MIDI files are:
 
 1. Variable velocity of notes when pressed
 2. Subjective choice of pedal positions throughout pieces
@@ -8,6 +8,8 @@ Natural MIDI Performance Augmentation. Using the power of machine learning to hu
 Given an input MIDI file lacking such details, augment the file with key velocities and pedal positions to produce a more human-sounding performance for any arbitrary piano piece. 
 
 To use the publically deployed model, please go to [Machine Pianist](http://machinepianist.com/).
+
+![Machine Pianist Website](https://i.imgur.com/iROo0i5.png "Machine Pianist Website")
 
 ---
 
