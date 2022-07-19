@@ -15,7 +15,7 @@ To use the publicly deployed model, please see the [Machine Pianist](http://mach
 
 ![Example Performance Chart](https://i.imgur.com/YQH9g2N.png "Example Performance")
 
-![Example Performance Chart](https://i.imgur.com/59rlEth.png "Example Performance")
+![Example Performance Chart](https://i.imgur.com/ER3GKar.png "Example Performance")
 
 ![Example Performance Chart](https://i.imgur.com/4btHzcS.png "Example Performance")
 
