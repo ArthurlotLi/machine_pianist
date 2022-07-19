@@ -7,7 +7,7 @@ Using the power of machine learning to humanize automatic piano performances to 
 
 Given an input MIDI file lacking such details, augment the file with key velocities and pedal positions to produce a more human-sounding performance for any arbitrary piano piece. 
 
-To use the publically deployed model, please go to [Machine Pianist](http://machinepianist.com/).
+To use the publicly deployed model, please go to [Machine Pianist](http://machinepianist.com/).
 
 ![Machine Pianist Website](https://i.imgur.com/LGDfsGb.png "Machine Pianist Website")
 
